@@ -1,0 +1,16 @@
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\bin\Debug\net10.0-windows\Client.exe
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\bin\Debug\net10.0-windows\Client.deps.json
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\bin\Debug\net10.0-windows\Client.runtimeconfig.json
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\bin\Debug\net10.0-windows\Client.dll
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\bin\Debug\net10.0-windows\Client.pdb
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\project_qlqa.main.resources
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.csproj.GenerateResource.cache
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.GeneratedMSBuildEditorConfig.editorconfig
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.AssemblyInfoInputs.cache
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.AssemblyInfo.cs
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.csproj.CoreCompileInputs.cache
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.dll
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\refint\Client.dll
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.pdb
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\Client.genruntimeconfig.cache
+D:\UIT\NT106_LTMCB\project\project_qlqa\project_qlqa\obj\Debug\net10.0-windows\ref\Client.dll
