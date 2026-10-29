@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Server.Controllers
 {
-    internal class Auth
+    internal class AuthController
     {
     }
 }
