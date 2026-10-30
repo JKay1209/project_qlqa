@@ -1,7 +1,4 @@
 .vs/
-Client/bin
-Client/obj
-Server/bin
-Server/obj
-Shared/bin
-Shared/obj
+
+*/bin
+*/obj
