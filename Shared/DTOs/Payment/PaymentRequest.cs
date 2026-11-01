@@ -1,5 +1,5 @@
-using QLQA.Enums;
+using Shared.Enums;
 
-namespace QLQA.DTOs.Payment;
+namespace Shared.DTOs.Payment;
 
 public sealed record PaymentRequest(int OrderId, PaymentMethod Method, decimal AmountPaid);

@@ -1,4 +1,4 @@
-namespace QLQA.Enums;
+namespace Shared.Enums;
 
 public enum ErrorCode
 {

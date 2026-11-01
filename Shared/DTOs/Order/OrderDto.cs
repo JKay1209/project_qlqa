@@ -1,6 +1,6 @@
-using QLQA.Enums;
+using Shared.Enums;
 
-namespace QLQA.DTOs.Order;
+namespace Shared.DTOs.Order;
 
 public sealed record OrderDto(int Id, int TableId, OrderStatus Status, DateTime CreatedAt, List<OrderItemDto> Items)
 {
