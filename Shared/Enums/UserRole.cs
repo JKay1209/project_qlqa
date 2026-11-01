@@ -1,9 +1,14 @@
-namespace QLQA.Enums;
+namespace Shared.Enums;
 
+/// <summary>
+/// Giá trị số TRÙNG với RoleId trong bảng Roles trong Database
+/// Muốn thêm vai trò: thêm ở đây, migration sẽ tự seed dòng mới.
+/// </summary>
 public enum UserRole
 {
-    Waiter = 1,
-    Kitchen = 2,
+    Admin = 1,
+    Manager = 2,
     Cashier = 3,
-    Manager = 4
+    Kitchen = 4,
+    Waiter = 5
 }

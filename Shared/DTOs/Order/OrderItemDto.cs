@@ -1,5 +1,5 @@
-using QLQA.Enums;
+using Shared.Enums;
 
-namespace QLQA.DTOs.Order;
+namespace Shared.DTOs.Order;
 
 public sealed record OrderItemDto(int MenuItemId, string Name, int Quantity, decimal UnitPrice, ItemStatus Status, string? Note);
