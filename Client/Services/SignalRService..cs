@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Client.Service
+namespace Client.Services
 {
-    internal class ApiService
+    internal class SignalRService
     {
     }
 }

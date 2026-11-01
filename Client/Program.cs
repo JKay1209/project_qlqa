@@ -1,4 +1,6 @@
-namespace project_qlqa
+using Client.Layout;
+
+namespace Client
 {
     internal static class Program
     {
@@ -11,7 +13,7 @@ namespace project_qlqa
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Application.Run(new main());
+            Application.Run(new MainLayout());
         }
     }
 }
