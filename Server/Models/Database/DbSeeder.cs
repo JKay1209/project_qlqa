@@ -24,6 +24,7 @@ public static class DbSeeder
             Username = "admin",
             PasswordHash = hasher.Hash(password),
             DisplayName = "Quản trị viên",
+            Email = config["Seed:AdminEmail"], 
             RoleId = (int)UserRole.Admin,
             IsActive = true
         });

@@ -8,6 +8,7 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
 {
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -33,10 +34,32 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
             e.Property(x => x.PasswordHash).IsRequired().HasMaxLength(256);
             e.Property(x => x.DisplayName).IsRequired().HasMaxLength(100);
 
+            // cot Email 
+            e.Property(x => x.Email).HasMaxLength(100);
+            e.HasIndex(x => x.Email)
+             .IsUnique()
+             .HasFilter("[Email] IS NOT NULL"); 
+
             e.HasOne(x => x.Role)
              .WithMany(r => r.Users)
              .HasForeignKey(x => x.RoleId)
              .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Bảng PasswordResetRequests
+        b.Entity<PasswordResetRequest>(e =>
+        {
+            e.ToTable("PasswordResetRequests");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.OtpHash).IsRequired().HasMaxLength(256);
+            e.Property(x => x.ResetTokenHash).HasMaxLength(64);
+            e.HasIndex(x => x.ResetTokenHash);
+            e.HasIndex(x => new { x.UserId, x.CreatedAt });
+
+            e.HasOne(x => x.User)
+             .WithMany()
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
