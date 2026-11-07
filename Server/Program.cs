@@ -21,6 +21,8 @@ builder.Services.AddSingleton<PasswordHasher>();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddScoped<EmployeeRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.AddSingleton<EmailService>();
 
 // Chuẩn bị cho real-time (chưa dùng)
 builder.Services.AddSignalR();
