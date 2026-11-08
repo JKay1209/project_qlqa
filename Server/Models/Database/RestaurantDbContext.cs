@@ -144,5 +144,21 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
              .HasForeignKey(x => x.MenuItemId)
              .OnDelete(DeleteBehavior.Restrict);
         });
+
+                b.Entity<Payment>(e =>
+        {
+            e.ToTable("Payments");
+            e.HasKey(x => x.PaymentId);
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            e.Property(x => x.Method).HasConversion<int>();
+            e.Property(x => x.Reference).HasMaxLength(100);
+            e.HasIndex(x => x.OrderId);
+            e.HasIndex(x => x.PaidAt);
+
+            e.HasOne(x => x.Order)
+             .WithMany(o => o.Payments)
+             .HasForeignKey(x => x.OrderId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
