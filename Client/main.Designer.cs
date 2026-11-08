@@ -46,7 +46,7 @@
             // 
             // panelLogin
             // 
-            panelLogin.BackColor = Color.White;
+            panelLogin.BackColor = Color.FromArgb(150, 255, 255, 255);
             panelLogin.Controls.Add(linkForgot);
             panelLogin.Controls.Add(btnLogin);
             panelLogin.Controls.Add(chkRemember);
@@ -165,7 +165,7 @@
             picLogo.BackColor = Color.Transparent;
             picLogo.Image = (Image)resources.GetObject("picLogo.Image");
             picLogo.InitialImage = null;
-            picLogo.Location = new Point(80, 0);
+            picLogo.Location = new Point(80, 14);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(141, 97);
             picLogo.SizeMode = PictureBoxSizeMode.Zoom;
