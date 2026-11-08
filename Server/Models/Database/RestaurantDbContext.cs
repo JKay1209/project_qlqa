@@ -123,5 +123,26 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
              .HasForeignKey(x => x.UserId)
              .OnDelete(DeleteBehavior.Restrict);
         });
+
+        b.Entity<OrderDetail>(e =>
+        {
+            e.ToTable("OrderDetails");
+            e.HasKey(x => x.OrderDetailId);
+            e.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(x => x.Note).HasMaxLength(300);
+            e.Property(x => x.Status).HasConversion<int>();
+            e.HasIndex(x => x.OrderId);
+            e.HasIndex(x => x.Status);                      // bếp lọc món Pending/Cooking
+
+            e.HasOne(x => x.Order)
+             .WithMany(o => o.OrderDetails)
+             .HasForeignKey(x => x.OrderId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.MenuItem)
+             .WithMany()
+             .HasForeignKey(x => x.MenuItemId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
