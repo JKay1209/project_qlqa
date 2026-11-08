@@ -102,5 +102,26 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
             e.Property(x => x.Status).HasConversion<int>();
             e.HasIndex(x => x.Status);
         });
+
+        b.Entity<Order>(e =>
+        {
+            e.ToTable("Orders");
+            e.HasKey(x => x.OrderId);
+            e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => new { x.TableId, x.Status });   // tìm đơn đang mở của một bàn
+
+            e.HasOne(x => x.Table)
+             .WithMany()
+             .HasForeignKey(x => x.TableId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.User)
+             .WithMany()
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
