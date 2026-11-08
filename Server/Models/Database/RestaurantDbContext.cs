@@ -67,5 +67,30 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
              .HasForeignKey(x => x.UserId)
              .OnDelete(DeleteBehavior.Cascade);
         });
+
+        b.Entity<Category>(e =>
+        {
+            e.ToTable("Categories");
+            e.HasKey(x => x.CategoryId);
+            e.Property(x => x.Name).IsRequired().HasMaxLength(100);
+            e.HasIndex(x => x.Name).IsUnique();
+        });
+
+        b.Entity<MenuItem>(e =>
+        {
+            e.ToTable("MenuItems");
+            e.HasKey(x => x.MenuItemId);
+            e.Property(x => x.Name).IsRequired().HasMaxLength(100);
+            e.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.ImageUrl).HasMaxLength(300);
+            e.HasIndex(x => x.Name);
+            e.HasIndex(x => new { x.CategoryId, x.IsAvailable });
+
+            e.HasOne(x => x.Category)
+             .WithMany(c => c.MenuItems)
+             .HasForeignKey(x => x.CategoryId)
+             .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
