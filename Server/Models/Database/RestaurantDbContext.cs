@@ -145,7 +145,7 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
              .OnDelete(DeleteBehavior.Restrict);
         });
 
-                b.Entity<Payment>(e =>
+        b.Entity<Payment>(e =>
         {
             e.ToTable("Payments");
             e.HasKey(x => x.PaymentId);
