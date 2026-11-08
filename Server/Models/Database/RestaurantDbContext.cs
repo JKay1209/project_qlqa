@@ -92,5 +92,15 @@ public class RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) 
              .HasForeignKey(x => x.CategoryId)
              .OnDelete(DeleteBehavior.Restrict);
         });
+
+        b.Entity<Table>(e =>
+        {
+            e.ToTable("Tables");
+            e.HasKey(x => x.TableId);
+            e.Property(x => x.TableName).IsRequired().HasMaxLength(50);
+            e.HasIndex(x => x.TableName).IsUnique();
+            e.Property(x => x.Status).HasConversion<int>();
+            e.HasIndex(x => x.Status);
+        });
     }
 }
