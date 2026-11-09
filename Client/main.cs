@@ -1,3 +1,5 @@
+using Client.Layout;
+using Client.LayoutLogics;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -7,6 +9,7 @@ namespace project_qlqa
 {
     public partial class main : Form
     {
+        private readonly AuthLogic _authLogic = new();
         public main()
         {
             InitializeComponent();
@@ -17,31 +20,31 @@ namespace project_qlqa
 
         private void main_Load(object sender, EventArgs e)
         {
-            // Ảnh nền và logo được lấy từ resource trong main.resx.
+           
             BackgroundImageLayout = ImageLayout.Stretch;
             picLogo.SizeMode = PictureBoxSizeMode.Zoom;
 
-            // Panel trong suốt
+          
             panelLogin.BackColor = Color.FromArgb(140, 255, 255, 255);
 
-            // Nút đăng nhập
+           
             btnLogin.BackColor = Color.FromArgb(41, 52, 164);
             btnLogin.ForeColor = Color.White;
             btnLogin.FlatStyle = FlatStyle.Flat;
             btnLogin.FlatAppearance.BorderSize = 0;
 
-            // Mật khẩu dạng *
+           
             txtPass.UseSystemPasswordChar = true;
 
-            // Font
+          
             txtUser.Font = new Font("Segoe UI", 11);
             txtPass.Font = new Font("Segoe UI", 11);
 
-            // Bo góc panel và button
+           
             RoundPanel(panelLogin, 30);
             RoundButton(btnLogin, 20);
 
-            // Căn giữa panel
+           
             CenterPanel();
         }
 
@@ -89,18 +92,56 @@ namespace project_qlqa
             CenterPanel();
         }
 
-        private void btnLogin_Click(object sender, EventArgs e)
+        private async void btnLogin_Click(object sender,EventArgs e)
         {
             string user = txtUser.Text.Trim();
             string pass = txtPass.Text;
 
-            if (user == "admin" && pass == "123")
+            if (string.IsNullOrWhiteSpace(user))
             {
-                MessageBox.Show("Đăng nhập thành công");
+                MessageBox.Show(
+                    "Vui lòng nhập tài khoản");
+
+                return;
             }
-            else
+
+            if (string.IsNullOrWhiteSpace(pass))
             {
-                MessageBox.Show("Sai tài khoản hoặc mật khẩu");
+                MessageBox.Show(
+                    "Vui lòng nhập mật khẩu");
+
+                return;
+            }
+
+            btnLogin.Enabled = false;
+
+            try
+            {
+                var result =
+                    await _authLogic.LoginAsync(
+                        user,
+                        pass);
+
+                if (result.Ok)
+                {
+                    MessageBox.Show(
+                        "Đăng nhập thành công");
+
+                    MainForm frm = new MainForm();
+
+                    frm.Show();
+
+                    this.Hide();
+                }
+                else
+                {
+                    MessageBox.Show(
+                        result.Error);
+                }
+            }
+            finally
+            {
+                btnLogin.Enabled = true;
             }
         }
 
@@ -118,6 +159,15 @@ namespace project_qlqa
 
         private void lblTitle_Click(object sender, EventArgs e)
         {
+        }
+        private void btnOpenRegister_Click(object sender,EventArgs e)
+        {
+            RegisterForm frm =
+                new RegisterForm();
+
+            frm.Show();
+
+            this.Hide();
         }
     }
 }

@@ -1,11 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 
 namespace Client.Layout
 {
-    internal class MainLayout
+    public class MainLayout : Form
     {
+        public MainLayout()
+        {
+            Text = "Main Layout";
+        }
+
+        private void InitializeComponent()
+        {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainLayout));
+            SuspendLayout();
+            // 
+            // MainLayout
+            // 
+            BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
+            BackgroundImageLayout = ImageLayout.Zoom;
+            ClientSize = new Size(892, 510);
+            DoubleBuffered = true;
+            Name = "MainLayout";
+            ResumeLayout(false);
+
+
+        }
+
+        private void MainLayout_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }
