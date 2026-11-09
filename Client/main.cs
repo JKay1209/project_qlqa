@@ -1,8 +1,9 @@
+using Client.Layout;
+using Client.LayoutLogics;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using Client.LayoutLogics;
 
 namespace project_qlqa
 {
@@ -91,9 +92,7 @@ namespace project_qlqa
             CenterPanel();
         }
 
-        private async void btnLogin_Click(
-    object sender,
-    EventArgs e)
+        private async void btnLogin_Click(object sender,EventArgs e)
         {
             string user = txtUser.Text.Trim();
             string pass = txtPass.Text;
@@ -128,7 +127,11 @@ namespace project_qlqa
                     MessageBox.Show(
                         "Đăng nhập thành công");
 
-                    // Sau này mở MainLayout ở đây
+                    MainForm frm = new MainForm();
+
+                    frm.Show();
+
+                    this.Hide();
                 }
                 else
                 {
