@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 
 namespace Client.Layout
 {
-    internal class MainLayout
+    public class MainLayout : Form
     {
+        public MainLayout()
+        {
+            Text = "Main Layout";
+        }
     }
 }
