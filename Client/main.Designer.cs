@@ -30,6 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(main));
             panelLogin = new Panel();
+            btnOpenRegister = new LinkLabel();
             linkForgot = new LinkLabel();
             btnLogin = new Button();
             chkRemember = new CheckBox();
@@ -47,6 +48,7 @@
             // panelLogin
             // 
             panelLogin.BackColor = Color.FromArgb(150, 255, 255, 255);
+            panelLogin.Controls.Add(btnOpenRegister);
             panelLogin.Controls.Add(linkForgot);
             panelLogin.Controls.Add(btnLogin);
             panelLogin.Controls.Add(chkRemember);
@@ -60,15 +62,28 @@
             panelLogin.Font = new Font("Segoe UI", 15.75F, FontStyle.Bold, GraphicsUnit.Point, 163);
             panelLogin.Location = new Point(365, 107);
             panelLogin.Name = "panelLogin";
-            panelLogin.Size = new Size(314, 395);
+            panelLogin.Size = new Size(314, 410);
             panelLogin.TabIndex = 0;
             panelLogin.Paint += panel1_Paint;
+            // 
+            // btnOpenRegister
+            // 
+            btnOpenRegister.AutoSize = true;
+            btnOpenRegister.Font = new Font("Segoe UI", 12.75F, FontStyle.Bold, GraphicsUnit.Point, 163);
+            btnOpenRegister.Location = new Point(80, 372);
+            btnOpenRegister.Name = "btnOpenRegister";
+            btnOpenRegister.RightToLeft = RightToLeft.No;
+            btnOpenRegister.Size = new Size(157, 23);
+            btnOpenRegister.TabIndex = 11;
+            btnOpenRegister.TabStop = true;
+            btnOpenRegister.Text = "Đăng ký tài khoản";
+            btnOpenRegister.Click += btnOpenRegister_Click;
             // 
             // linkForgot
             // 
             linkForgot.AutoSize = true;
             linkForgot.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            linkForgot.Location = new Point(97, 354);
+            linkForgot.Location = new Point(97, 338);
             linkForgot.Name = "linkForgot";
             linkForgot.Size = new Size(124, 21);
             linkForgot.TabIndex = 10;
@@ -80,7 +95,7 @@
             btnLogin.BackColor = SystemColors.HotTrack;
             btnLogin.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 163);
             btnLogin.ForeColor = SystemColors.ButtonHighlight;
-            btnLogin.Location = new Point(23, 311);
+            btnLogin.Location = new Point(23, 286);
             btnLogin.Name = "btnLogin";
             btnLogin.Size = new Size(270, 40);
             btnLogin.TabIndex = 9;
@@ -92,7 +107,7 @@
             chkRemember.AutoSize = true;
             chkRemember.Font = new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 163);
             chkRemember.ForeColor = SystemColors.GrayText;
-            chkRemember.Location = new Point(23, 276);
+            chkRemember.Location = new Point(23, 250);
             chkRemember.Name = "chkRemember";
             chkRemember.Size = new Size(85, 17);
             chkRemember.TabIndex = 8;
@@ -102,7 +117,7 @@
             // txtPass
             // 
             txtPass.Font = new Font("Segoe UI", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            txtPass.Location = new Point(23, 243);
+            txtPass.Location = new Point(23, 217);
             txtPass.Name = "txtPass";
             txtPass.Size = new Size(270, 27);
             txtPass.TabIndex = 7;
@@ -112,7 +127,7 @@
             // 
             lblPass.AutoSize = true;
             lblPass.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            lblPass.Location = new Point(23, 225);
+            lblPass.Location = new Point(23, 199);
             lblPass.Name = "lblPass";
             lblPass.Size = new Size(57, 15);
             lblPass.TabIndex = 6;
@@ -121,7 +136,7 @@
             // txtUser
             // 
             txtUser.Font = new Font("Segoe UI", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            txtUser.Location = new Point(23, 179);
+            txtUser.Location = new Point(23, 155);
             txtUser.Name = "txtUser";
             txtUser.Size = new Size(270, 27);
             txtUser.TabIndex = 4;
@@ -131,7 +146,7 @@
             // 
             lblUser.AutoSize = true;
             lblUser.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            lblUser.Location = new Point(24, 161);
+            lblUser.Location = new Point(23, 137);
             lblUser.Name = "lblUser";
             lblUser.Size = new Size(58, 15);
             lblUser.TabIndex = 3;
@@ -142,7 +157,7 @@
             lblSubTitle.AutoSize = true;
             lblSubTitle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 163);
             lblSubTitle.ForeColor = SystemColors.GrayText;
-            lblSubTitle.Location = new Point(80, 130);
+            lblSubTitle.Location = new Point(80, 111);
             lblSubTitle.Name = "lblSubTitle";
             lblSubTitle.Size = new Size(137, 15);
             lblSubTitle.TabIndex = 2;
@@ -153,7 +168,7 @@
             // 
             lblTitle.AutoSize = true;
             lblTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            lblTitle.Location = new Point(23, 100);
+            lblTitle.Location = new Point(23, 90);
             lblTitle.Name = "lblTitle";
             lblTitle.Size = new Size(266, 21);
             lblTitle.TabIndex = 1;
@@ -165,7 +180,7 @@
             picLogo.BackColor = Color.Transparent;
             picLogo.Image = (Image)resources.GetObject("picLogo.Image");
             picLogo.InitialImage = null;
-            picLogo.Location = new Point(80, 14);
+            picLogo.Location = new Point(80, 3);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(141, 97);
             picLogo.SizeMode = PictureBoxSizeMode.Zoom;
@@ -205,5 +220,6 @@
         private Button btnLogin;
         private CheckBox chkRemember;
         private LinkLabel linkForgot;
+        private LinkLabel btnOpenRegister;
     }
 }

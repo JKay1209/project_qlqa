@@ -160,5 +160,14 @@ namespace project_qlqa
         private void lblTitle_Click(object sender, EventArgs e)
         {
         }
+        private void btnOpenRegister_Click(object sender,EventArgs e)
+        {
+            RegisterForm frm =
+                new RegisterForm();
+
+            frm.Show();
+
+            this.Hide();
+        }
     }
 }
