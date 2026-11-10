@@ -1,5 +1,10 @@
 .vs/
 
+<<<<<<< HEAD
 */bin/
 */obj/
+=======
+*/bin
+*/obj
+>>>>>>> c212fd113be6d97e00a791e980fabd84d2ab1c13
 structure_draft/

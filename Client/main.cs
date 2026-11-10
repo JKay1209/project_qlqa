@@ -1,127 +1,173 @@
-using client.network;
-using System.Net.Security;
-using System.Net.Sockets;
+using Client.Layout;
+using Client.LayoutLogics;
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Windows.Forms;
 
 namespace project_qlqa
 {
     public partial class main : Form
     {
-        // Tạm thời ghi cứng; Task 14 (UDP Broadcast) sẽ tự tìm server thay cho phần này
-        private const string ServerHost = "127.0.0.1";
-        private const int ServerPort = 5000;
-
-        private readonly ConnectionHandler _conn = new();
-        private TcpClient? _tcp;
-        private SslStream? _channel;
-        private bool _busy;
-
+        private readonly AuthLogic _authLogic = new();
         public main()
         {
             InitializeComponent();
 
-            AcceptButton = btnLogin;          // nhấn Enter = bấm Đăng nhập
-            txtUsername.MaxLength = 50;
-            txtPassword.MaxLength = 128;
-            lblStatus.Text = "";
-
-            // Gán sự kiện bằng code. Nếu bạn đã double-click nút trong Designer thì BỎ các dòng này
-            // (gán hai lần thì hàm chạy hai lần).
             btnLogin.Click += btnLogin_Click;
-            btnRegister.Click += btnRegister_Click;
-            btnForgotPassword.Click += btnForgotPassword_Click;
+            Resize += FormDangNhap_Resize;
         }
 
-        // ================= Đăng nhập =================
-        private async void btnLogin_Click(object? sender, EventArgs e)
+        private void main_Load(object sender, EventArgs e)
         {
-            if (_busy) return;                                   // chặn bấm liên tiếp
+           
+            BackgroundImageLayout = ImageLayout.Stretch;
+            picLogo.SizeMode = PictureBoxSizeMode.Zoom;
 
-            string user = txtUsername.Text.Trim();
-            string pass = txtPassword.Text;
-            if (user.Length == 0 || pass.Length == 0)
+          
+            panelLogin.BackColor = Color.FromArgb(140, 255, 255, 255);
+
+           
+            btnLogin.BackColor = Color.FromArgb(41, 52, 164);
+            btnLogin.ForeColor = Color.White;
+            btnLogin.FlatStyle = FlatStyle.Flat;
+            btnLogin.FlatAppearance.BorderSize = 0;
+
+           
+            txtPass.UseSystemPasswordChar = true;
+
+          
+            txtUser.Font = new Font("Segoe UI", 11);
+            txtPass.Font = new Font("Segoe UI", 11);
+
+           
+            RoundPanel(panelLogin, 30);
+            RoundButton(btnLogin, 20);
+
+           
+            CenterPanel();
+        }
+
+        private void CenterPanel()
+        {
+            panelLogin.Left =
+                (this.ClientSize.Width - panelLogin.Width) / 2;
+
+            panelLogin.Top =
+                (this.ClientSize.Height - panelLogin.Height) / 2;
+        }
+
+        private void RoundPanel(Panel panel, int radius)
+        {
+            panel.Region = CreateRoundedRegion(panel.Width, panel.Height, radius);
+        }
+
+        private void RoundButton(Button btn, int radius)
+        {
+            btn.Region = CreateRoundedRegion(btn.Width, btn.Height, radius);
+        }
+
+        private static Region CreateRoundedRegion(int width, int height, int radius)
+        {
+            radius = Math.Min(radius, Math.Min(width, height));
+
+            GraphicsPath path = new GraphicsPath();
+
+            path.AddArc(0, 0, radius, radius, 180, 90);
+            path.AddArc(width - radius, 0, radius, radius, 270, 90);
+            path.AddArc(width - radius,
+                        height - radius,
+                        radius, radius, 0, 90);
+            path.AddArc(0,
+                        height - radius,
+                        radius, radius, 90, 90);
+
+            path.CloseFigure();
+
+            return new Region(path);
+        }
+
+        private void FormDangNhap_Resize(object sender, EventArgs e)
+        {
+            CenterPanel();
+        }
+
+        private async void btnLogin_Click(object sender,EventArgs e)
+        {
+            string user = txtUser.Text.Trim();
+            string pass = txtPass.Text;
+
+            if (string.IsNullOrWhiteSpace(user))
             {
-                ShowStatus("Vui lòng nhập tài khoản và mật khẩu.");
+                MessageBox.Show(
+                    "Vui lòng nhập tài khoản");
+
                 return;
             }
 
-            SetBusy(true);
-            ShowStatus("Đang kết nối...", ok: true);
+            if (string.IsNullOrWhiteSpace(pass))
+            {
+                MessageBox.Show(
+                    "Vui lòng nhập mật khẩu");
+
+                return;
+            }
+
+            btnLogin.Enabled = false;
+
             try
             {
-                // 1) Kết nối TCP + bắt tay TLS + kiểm tra vân tay (mật khẩu CHƯA được gửi)
-                var (tcp, channel, _) = await _conn.ConnectSecureAsync(
-                    ServerHost, ServerPort, AskUserTrust, CancellationToken.None);
-                _tcp = tcp;
-                _channel = channel;
+                var result =
+                    await _authLogic.LoginAsync(
+                        user,
+                        pass);
 
-                // 2) TODO: gửi Login(user, pass) qua _channel và nhận LoginOk/LoginFail.
-                //    Cần khung gói tin + phía Server, xem phần "Bước tiếp theo".
-                ShowStatus("Kết nối an toàn thành công (chưa gửi đăng nhập).", ok: true);
+                if (result.Ok)
+                {
+                    MessageBox.Show(
+                        "Đăng nhập thành công");
+
+                    MainForm frm = new MainForm();
+
+                    frm.Show();
+
+                    this.Hide();
+                }
+                else
+                {
+                    MessageBox.Show(
+                        result.Error);
+                }
             }
-            catch (ServerIdentityChangedException ex)
-            {
-                MessageBox.Show(this,
-                    "CẢNH BÁO BẢO MẬT: khóa của server khác với lần trước.\n" +
-                    "Có thể server đã cài lại hoặc có người giả mạo/nghe lén.\n\nVân tay mới:\n" + ex.Fingerprint,
-                    "Server không đáng tin", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-                ShowStatus("Đã chặn: server không đáng tin.");
-            }
-            catch (ServerNotTrustedException) { ShowStatus("Bạn đã từ chối tin cậy server."); }
-            catch (ServerUnavailableException) { ShowStatus("Không kết nối được tới server. Server đã bật chưa?"); }
-            catch (TimeoutException) { ShowStatus("Hết thời gian chờ server."); }
-            catch (HandshakeFailedException) { ShowStatus("Kết nối không an toàn hoặc bị ngắt giữa chừng."); }
-            catch (OperationCanceledException) { ShowStatus("Đã hủy."); }
             finally
             {
-                txtPassword.Clear();                             // không để mật khẩu nằm lại trong ô nhập
-                SetBusy(false);
+                btnLogin.Enabled = true;
             }
         }
 
-        // Hộp thoại xác nhận vân tay, chỉ gọi khi gặp server mới (chạy trên luồng giao diện)
-        private bool AskUserTrust(string fingerprint)
+        private void panel1_Paint(object sender, PaintEventArgs e)
         {
-            return MessageBox.Show(this,
-                "Đây là lần đầu kết nối tới server này.\n\nVân tay (SHA-256):\n" + fingerprint +
-                "\n\nHãy so sánh với vân tay hiển thị trên máy Server. Nếu KHỚP, chọn Yes.",
-                "Xác nhận server", MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
-                MessageBoxDefaultButton.Button2) == DialogResult.Yes;
         }
 
-        // ================= Chức năng làm sau =================
-        private void btnRegister_Click(object? sender, EventArgs e)
-            => MessageBox.Show(this, "Chức năng Đăng ký sẽ làm ở Task 04.", "Chưa hỗ trợ");
-
-        private void btnForgotPassword_Click(object? sender, EventArgs e)
-            => MessageBox.Show(this, "Chức năng Quên mật khẩu (OTP) sẽ làm ở Task 07.", "Chưa hỗ trợ");
-
-        // ================= Tiện ích giao diện =================
-        private void SetBusy(bool busy)
+        private void textBox1_TextChanged(object sender, EventArgs e)
         {
-            _busy = busy;
-            UseWaitCursor = busy;
-            txtUsername.Enabled = txtPassword.Enabled = !busy;
-            btnLogin.Enabled = btnRegister.Enabled = btnForgotPassword.Enabled = !busy;
         }
 
-        private void ShowStatus(string message, bool ok = false)
+        private void lblSubTitle_Click(object sender, EventArgs e)
         {
-            lblStatus.ForeColor = ok ? Color.DarkGreen : Color.Firebrick;
-            lblStatus.Text = message;
         }
 
-        private void CloseConnection()
+        private void lblTitle_Click(object sender, EventArgs e)
         {
-            _channel?.Dispose();
-            _tcp?.Dispose();
-            _channel = null;
-            _tcp = null;
         }
-
-        protected override void OnFormClosed(FormClosedEventArgs e)
+        private void btnOpenRegister_Click(object sender,EventArgs e)
         {
-            CloseConnection();
-            base.OnFormClosed(e);
+            RegisterForm frm =
+                new RegisterForm();
+
+            frm.Show();
+
+            this.Hide();
         }
     }
 }

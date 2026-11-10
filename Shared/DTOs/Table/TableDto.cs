@@ -1,5 +1,5 @@
-using QLQA.Enums;
+using Shared.Enums;
 
-namespace QLQA.DTOs.Table;
+namespace Shared.DTOs.Table;
 
 public sealed record TableDto(int Id, string Name, int Seats, TableStatus Status);
