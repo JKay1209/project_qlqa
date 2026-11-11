@@ -1,10 +1,12 @@
 ﻿using Server.Config;
 using Server.Middleware;
 using Server.Models.Database;
+using Server.Network;
 using Server.Repositories;
 using Server.Security;
 using Server.Services;
 using System.Text.Json.Serialization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +28,9 @@ builder.Services.AddSingleton<EmailService>();
 
 // Chuẩn bị cho real-time (chưa dùng)
 builder.Services.AddSignalR();
+
+// Socket server TCP (Task 05)
+builder.Services.AddHostedService<TcpSocketServer>();
 
 var app = builder.Build();
 
