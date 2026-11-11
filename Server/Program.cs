@@ -30,6 +30,9 @@ builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSignalR();
 
 // Socket server TCP (Task 05)
+builder.Services.Configure<SocketServerOptions>(builder.Configuration.GetSection(SocketServerOptions.SectionName));
+builder.Services.AddSingleton<ClientRegistry>();
+builder.Services.AddSingleton<PacketDispatcher>();
 builder.Services.AddHostedService<TcpSocketServer>();
 
 var app = builder.Build();

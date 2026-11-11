@@ -9,5 +9,6 @@ public enum ErrorCode
     NotFound = 4,
     InvalidRequest = 5,
     Conflict = 6,
+    Forbidden = 7,
     InternalError = 500
 }

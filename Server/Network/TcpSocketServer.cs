@@ -1,73 +1,69 @@
-﻿using System.Net;
+using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 namespace Server.Network;
 
-// TCP Socket Server nền tảng: Socket -> Bind -> Listen -> Accept.
-// Chạy nền cùng ứng dụng Server, lắng nghe ở cổng 9000.
-public class TcpSocketServer(ILogger<TcpSocketServer> logger) : BackgroundService
+// TCP Socket Server: Socket -> Bind -> Listen -> Accept (Task 05).
+// Chạy nền cùng ứng dụng Server. Mỗi client được giao cho một ClientSession xử lý riêng.
+public class TcpSocketServer(
+    IOptions<SocketServerOptions> options,
+    ClientRegistry clients,
+    PacketDispatcher dispatcher,
+    ILoggerFactory loggerFactory,
+    ILogger<TcpSocketServer> logger) : BackgroundService
 {
-    private const int Port = 9000;
-    private const int Backlog = 10;     // số kết nối chờ tối đa trong hàng đợi
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var opt = options.Value;
+
         // 1. socket(): tạo socket TCP (IPv4, kiểu stream)
         using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        // 2. bind(): gắn socket vào mọi địa chỉ IP của máy, cổng 9000
-        listener.Bind(new IPEndPoint(IPAddress.Any, Port));
+        // 2. bind(): gắn socket vào mọi địa chỉ IP của máy, cổng cấu hình trong appsettings (mặc định 9000)
+        listener.Bind(new IPEndPoint(IPAddress.Any, opt.Port));
 
-        // 3. listen(): bắt đầu chờ kết nối
-        listener.Listen(Backlog);
-        logger.LogInformation("Socket server đang lắng nghe ở cổng {Port}", Port);
+        // 3. listen(): bắt đầu chờ kết nối. Backlog = số kết nối chờ tối đa trong hàng đợi
+        listener.Listen(opt.Backlog);
+        logger.LogInformation("Socket server đang lắng nghe ở cổng {Port}", opt.Port);
 
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            Socket client;
+            try
             {
-                // 4. accept(): chờ client kết nối, mỗi client xử lý ở một luồng riêng
-                Socket client = await listener.AcceptAsync(stoppingToken);
-                _ = Task.Run(() => HandleClientAsync(client, stoppingToken), stoppingToken);
+                // 4. accept(): chờ client kết nối
+                client = await listener.AcceptAsync(stoppingToken);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // Server đang tắt, thoát vòng lặp bình thường
+            catch (OperationCanceledException)
+            {
+                break;   // Server đang tắt
+            }
+            catch (SocketException ex)
+            {
+                logger.LogWarning("Lỗi khi accept: {Message}", ex.Message);
+                continue;
+            }
+
+            _ = Task.Run(() => RunClientAsync(client, opt, stoppingToken), stoppingToken);
         }
     }
 
-    // Nhận chữ từ client rồi trả lời: "PING" -> "PONG", còn lại -> "ECHO: <nội dung>"
-    private async Task HandleClientAsync(Socket client, CancellationToken ct)
+    private async Task RunClientAsync(Socket socket, SocketServerOptions opt, CancellationToken ct)
     {
-        using (client)
+        var session = new ClientSession(socket, dispatcher, opt.MaxPayloadBytes, loggerFactory.CreateLogger<ClientSession>());
+        clients.Add(session);
+        logger.LogInformation("Client kết nối: {Endpoint} (đang có {Count})", session.Endpoint, clients.Count);
+
+        try
         {
-            logger.LogInformation("Client kết nối: {Endpoint}", client.RemoteEndPoint);
-            var buffer = new byte[1024];
-
-            try
-            {
-                while (!ct.IsCancellationRequested)
-                {
-                    int received = await client.ReceiveAsync(buffer, SocketFlags.None, ct);
-                    if (received == 0) break;   // client đã đóng kết nối
-
-                    string message = Encoding.UTF8.GetString(buffer, 0, received).Trim();
-                    string reply = message.Equals("PING", StringComparison.OrdinalIgnoreCase)
-                        ? "PONG"
-                        : $"ECHO: {message}";
-
-                    await client.SendAsync(Encoding.UTF8.GetBytes(reply + "\n"), SocketFlags.None, ct);
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (SocketException ex)
-            {
-                logger.LogWarning("Lỗi socket với client: {Message}", ex.Message);
-            }
-
-            logger.LogInformation("Client ngắt kết nối.");
+            await session.RunAsync(ct);
+        }
+        finally
+        {
+            clients.Remove(session);
+            await session.DisposeAsync();
+            logger.LogInformation("Client ngắt kết nối: {Endpoint} (còn {Count})", session.Endpoint, clients.Count);
         }
     }
 }
