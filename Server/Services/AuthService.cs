@@ -63,20 +63,22 @@ public class AuthService(
     public async Task<(UserDto? User, ErrorCode Error)> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
         string username = request.Username.Trim();
+        string? emailNorm = string.IsNullOrWhiteSpace(request.Email) ? null : NormalizeEmail(request.Email);
 
-        // 1. Kiểm tra trùng username
-        if (await repo.UsernameExistsAsync(username, ct))
+        // Kiem tra username va email trong database
+        if (await repo.UsernameExistsAsync(username, ct)
+            || (emailNorm is not null && await repo.EmailExistsAsync(emailNorm, ct)))
         {
-            logger.LogWarning("Đăng ký thất bại: username '{Username}' đã tồn tại.", username);
+            logger.LogWarning("Tạo tài khoản thất bại: '{Username}' hoặc email đã tồn tại.", username);
             return (null, ErrorCode.Conflict);
         }
 
-        // 2. Tạo entity, luu mat khau sau khi hash
         var user = new User
         {
             Username = username,
             PasswordHash = hasher.Hash(request.Password),
             DisplayName = request.DisplayName.Trim(),
+            Email = emailNorm,
             RoleId = (int)request.Role,
             IsActive = true
         };
@@ -88,7 +90,8 @@ public class AuthService(
         }
         catch (DbUpdateException)
         {
-            if (await repo.UsernameExistsAsync(username, ct))
+            if (await repo.UsernameExistsAsync(username, ct)
+            || (emailNorm is not null && await repo.EmailExistsAsync(emailNorm, ct)))
                 return (null, ErrorCode.Conflict);
             throw;   // lỗi DB khác -> để ExceptionMiddleware xử lý (500)
         }
