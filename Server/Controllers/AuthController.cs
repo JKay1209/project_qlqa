@@ -43,11 +43,18 @@ public class AuthController(AuthService auth) : ControllerBase
 
 
     // ================== Register =========================
-    // POST /api/auth/register  (Admin only)
-    [Authorize(Roles = nameof(UserRole.Admin))]
+    // POST /api/auth/register
+    // Cho phép người dùng chưa đăng nhập đăng ký tài khoản mới.
+    // Riêng vai trò Admin: chỉ Admin đã đăng nhập mới được tạo (xem kiểm tra ở đầu phương thức).
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
+        // Không cho người lạ tự đăng ký vai trò Admin
+        if (request.Role == UserRole.Admin && !User.IsInRole(nameof(UserRole.Admin)))
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ErrorResponse("Không được tạo tài khoản quản trị."));
+
         string? error = ValidateRegister(request);
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
@@ -161,7 +168,7 @@ public class AuthController(AuthService auth) : ControllerBase
     // Kiểm tra định dạng email cơ bản
     private static bool IsValidEmail(string? email)
         => !string.IsNullOrWhiteSpace(email) && email.Length <= 100 && System.Net.Mail.MailAddress.TryCreate(email, out _);
-    
-    
+
+
     // TODO: POST /api/auth/logout, POST /api/auth/refresh (làm sau)
 }
