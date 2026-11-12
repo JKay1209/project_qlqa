@@ -89,6 +89,7 @@
             linkForgot.TabIndex = 10;
             linkForgot.TabStop = true;
             linkForgot.Text = "Quên mật khẩu?";
+            linkForgot.LinkClicked += linkForgot_LinkClicked;
             // 
             // btnLogin
             // 

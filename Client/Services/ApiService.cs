@@ -46,5 +46,29 @@ namespace Client.Services
                 }
             });
         }
+        protected async Task PostAsync(string url,object data)
+        {
+            string json =
+                JsonSerializer.Serialize(data);
+
+            StringContent content =
+                new StringContent(
+                    json,
+                    Encoding.UTF8,
+                    "application/json");
+
+            HttpResponseMessage response =
+                await client.PostAsync(
+                    url,
+                    content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string error =
+                    await response.Content.ReadAsStringAsync();
+
+                throw new Exception(error);
+            }
+        }
     }
 }

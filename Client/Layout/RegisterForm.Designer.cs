@@ -126,6 +126,7 @@
             DoubleBuffered = true;
             Name = "RegisterForm";
             Text = "RegisterForm";
+            Load += RegisterForm_Load;
             ResumeLayout(false);
             PerformLayout();
         }

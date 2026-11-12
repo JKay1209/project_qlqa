@@ -46,8 +46,10 @@ public class AuthController(AuthService auth) : ControllerBase
     // Cho phep nguoi dung dang nhap tai khoan moi
     [AllowAnonymous]
     [HttpPost("register")]
+
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
+        Console.WriteLine("REGISTER API HIT");
         string? error = ValidateRegister(request);
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
