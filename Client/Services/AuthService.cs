@@ -6,26 +6,20 @@ namespace Client.Services
 {
     internal class AuthService : ApiService
     {
-        public async Task<LoginResponse?> LoginAsync(
+        public async Task<LoginResponse> LoginAsync(
             string username,
             string password,
             CancellationToken ct = default)
         {
-            LoginRequest request =
-                new LoginRequest(username, password);
+            LoginRequest request = new LoginRequest(username, password);
 
-            return await PostAsync<LoginResponse>(
-                "api/auth/login",
-                request);
+            return await PostAsync<LoginResponse>("api/auth/login", request, ct);
         }
 
-        public async Task RegisterAsync(
+        public Task<UserDto> RegisterAsync(
             RegisterRequest request,
             CancellationToken ct = default)
-        {
-            // Tạm thời để build được
-            await Task.CompletedTask;
-        }
+            => PostAsync<UserDto>("api/auth/register", request, ct);
 
         public async Task ForgotPasswordAsync(
             string email,

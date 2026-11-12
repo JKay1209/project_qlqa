@@ -3,11 +3,15 @@
     "Name": "New Profile",
     "Projects": [
       {
-        "Path": "project_qlqa\\client.csproj",
+        "Path": "server\\server.csproj",
         "Action": "Start"
       },
       {
-        "Path": "server\\server.csproj",
+        "Path": "Client\\Client.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Shared\\Shared.csproj",
         "Action": "Start"
       }
     ]

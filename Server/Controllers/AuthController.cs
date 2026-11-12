@@ -57,9 +57,9 @@ public class AuthController(AuthService auth) : ControllerBase
         return code switch
         {
             ErrorCode.None => StatusCode(StatusCodes.Status201Created, user),
-            ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản đã tồn tại.")),
+            ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản hoặc email đã tồn tại.")),
             _ => StatusCode(StatusCodes.Status500InternalServerError,
-                                             new ErrorResponse("Không thể tạo tài khoản."))
+                            new ErrorResponse("Không thể tạo tài khoản."))
         };
     }
 
@@ -86,6 +86,9 @@ public class AuthController(AuthService auth) : ControllerBase
 
         if (!Enum.IsDefined(r.Role))
             return "Vai trò không hợp lệ.";
+
+        if (!string.IsNullOrWhiteSpace(r.Email) && !IsValidEmail(r.Email))
+            return "Email không hợp lệ.";
 
         return null;
     }
@@ -161,7 +164,7 @@ public class AuthController(AuthService auth) : ControllerBase
     // Kiểm tra định dạng email cơ bản
     private static bool IsValidEmail(string? email)
         => !string.IsNullOrWhiteSpace(email) && email.Length <= 100 && System.Net.Mail.MailAddress.TryCreate(email, out _);
-    
-    
+
+
     // TODO: POST /api/auth/logout, POST /api/auth/refresh (làm sau)
 }

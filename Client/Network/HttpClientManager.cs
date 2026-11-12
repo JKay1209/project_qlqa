@@ -12,7 +12,8 @@ namespace Client.Network
             var client = new HttpClient()
             {
                 BaseAddress =
-                    new Uri("https://reawake-judiciary-thread.ngrok-free.dev/")
+                    new Uri("https://reawake-judiciary-thread.ngrok-free.dev/"),
+                Timeout = TimeSpan.FromSeconds(15)
             };
 
             // Bỏ qua trang cảnh báo của ngrok (gói miễn phí)
