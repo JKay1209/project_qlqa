@@ -43,8 +43,8 @@ public class AuthController(AuthService auth) : ControllerBase
 
 
     // ================== Register =========================
-    // POST /api/auth/register  (Admin only)
-    [Authorize(Roles = nameof(UserRole.Admin))]
+    // Cho phep nguoi dung dang nhap tai khoan moi
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
