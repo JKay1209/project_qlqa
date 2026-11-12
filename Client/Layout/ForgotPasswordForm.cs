@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Client.Services;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Net.Mail;
 using System.Text;
 using System.Windows.Forms;
-using Client.Services;
 
 namespace Client.Layout
 {
@@ -17,46 +18,59 @@ namespace Client.Layout
             InitializeComponent();
         }
 
-        private async void btnSendOtp_Click(
-    object sender,
-    EventArgs e)
+        private async void btnSendOtp_Click(object sender, EventArgs e)
         {
-            string email =
-                txtEmail.Text.Trim();
+            string email = txtEmail.Text.Trim();
 
+            // Kiểm tra email
             if (string.IsNullOrWhiteSpace(email))
             {
-                MessageBox.Show(
-                    "Vui lòng nhập email");
+                MessageBox.Show("Vui lòng nhập email.", "Thông báo", MessageBoxButtons.OK);
+                return;
+            }
 
+            if (!MailAddress.TryCreate(email, out _))
+            {
+                MessageBox.Show("Email không đúng định dạng.", "Thông báo", MessageBoxButtons.OK);
                 return;
             }
 
             try
             {
-                await _auth.ForgotPasswordAsync(
-                    email);
+                btnSendOTP.Enabled = false;
+
+                // Gọi Server gửi OTP
+                await _auth.ForgotPasswordAsync(email);
 
                 MessageBox.Show(
-                    "OTP đã được gửi");
+                    "Nếu email thuộc một tài khoản hợp lệ, mã OTP sẽ được gửi đến email đó.",
+                    "Thông báo",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
 
-                VerifyOtpForm frm =
-                    new VerifyOtpForm();
+                // Chuyển sang màn hình nhập OTP
+                var form = new VerifyOtpForm(email);
 
-                frm.Show();
+                form.Show();
 
-                this.Hide();
+                Hide();
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    ex.Message);
+                    ex.Message,
+                    "Không thể gửi yêu cầu",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnSendOTP.Enabled = true;
             }
         }
 
         private void ForgotPasswordForm_Load(object sender, EventArgs e)
         {
-
         }
     }
 }

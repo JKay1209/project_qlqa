@@ -1,5 +1,9 @@
 ﻿using Client.LayoutLogics;
+using Client.Security;
+using Client.Services;
 using project_qlqa;
+using Shared.DTOs.Auth;
+using Shared.Enums;
 using Shared.Enums;
 using System;
 using System.Collections.Generic;
@@ -8,9 +12,6 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Client.Services;
-using Shared.DTOs.Auth;
-using Shared.Enums;
 
 namespace Client.Layout
 {
@@ -39,19 +40,33 @@ namespace Client.Layout
         {
             InitializeComponent();
 
-            var roles = new List<RoleItem>
-    {
-        new("Admin (Quản trị viên)", UserRole.Admin),
-        new("Quản lý",               UserRole.Manager),
-        new("Thu ngân",              UserRole.Cashier),
-        new("Bếp",                   UserRole.Kitchen),
-        new("Phục vụ",               UserRole.Waiter),
-    };
+            var roles = new List<RoleItem>();
 
-            cmbRole.DisplayMember = nameof(RoleItem.Text);    // chữ hiển thị
-            cmbRole.ValueMember = nameof(RoleItem.Value);   // giá trị thật
+            // Người chưa đăng nhập chỉ được đăng ký vai trò Waiter.
+            bool isAdmin = SessionManager.IsLoggedIn
+                           && SessionManager.Role == UserRole.Admin;
+
+            if (isAdmin)
+            {
+                roles.Add(new RoleItem("Admin (Quản trị viên)", UserRole.Admin));
+                roles.Add(new RoleItem("Quản lý", UserRole.Manager));
+                roles.Add(new RoleItem("Thu ngân", UserRole.Cashier));
+                roles.Add(new RoleItem("Bếp", UserRole.Kitchen));
+                roles.Add(new RoleItem("Phục vụ", UserRole.Waiter));
+            }
+            else
+            {
+                roles.Add(new RoleItem("Phục vụ", UserRole.Waiter));
+            }
+
+            cmbRole.DisplayMember = nameof(RoleItem.Text);
+            cmbRole.ValueMember = nameof(RoleItem.Value);
             cmbRole.DataSource = roles;
-            cmbRole.SelectedIndex = roles.FindIndex(r => r.Value == UserRole.Waiter);  // mặc định: Phục vụ
+
+            cmbRole.SelectedIndex = 0;
+
+            // Không cần hiển thị lựa chọn vai trò cho người đăng ký công khai.
+            cmbRole.Visible = isAdmin;
         }
 
         private void lblTitle_Click(object sender, EventArgs e)

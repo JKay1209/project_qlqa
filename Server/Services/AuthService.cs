@@ -102,52 +102,103 @@ public class AuthService(
 
 
     // =============================== Forgot password ================================
-    // Bước 1: Tạo OTP và gửi mail
-    public async Task RequestPasswordResetAsync(string emailAddress, CancellationToken ct = default)
+    // BƯỚC 1: Tạo OTP và gửi đến email trong database
+    public async Task RequestPasswordResetAsync(
+        string emailAddress,
+        CancellationToken ct = default)
     {
         string normalized = NormalizeEmail(emailAddress);
 
+        // Tìm tài khoản theo email người dùng nhập
         var user = await repo.GetByEmailAsync(normalized, ct);
-        if (user is null || !user.IsActive)
+
+        // Không tiết lộ email có tồn tại hay không
+        if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(user.Email))
         {
-            logger.LogWarning("Quên mật khẩu: email '{Email}' không hợp lệ hoặc bị khóa.", normalized);
-            return;   // im lặng để không lộ email nào tồn tại
+            logger.LogInformation(
+                "Yêu cầu đặt lại mật khẩu không khớp tài khoản.");
+
+            return;
         }
 
-        // Chống spam: đang trong thời gian chờ thì không gửi thêm
-        var latest = await repo.GetLatestResetAsync(user.UserId, ct);
-        if (latest is not null && DateTime.UtcNow - latest.CreatedAt < ResendCooldown)
+        // Chống gửi OTP liên tục
+        var latest = await repo.GetLatestResetAsync(
+            user.UserId,
+            ct);
+
+        if (latest is not null
+            && DateTime.UtcNow - latest.CreatedAt < ResendCooldown)
+        {
             return;
+        }
 
-        await repo.InvalidateResetsAsync(user.UserId, ct);   // OTP cũ mất hiệu lực
+        // Vô hiệu hóa OTP cũ
+        await repo.InvalidateResetsAsync(user.UserId, ct);
 
-        string otp = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6"); 
-        await repo.AddResetAsync(new PasswordResetRequest
+        // Tạo OTP 6 chữ số
+        string otp = RandomNumberGenerator
+            .GetInt32(0, 1_000_000)
+            .ToString("D6");
+
+        var resetRequest = new PasswordResetRequest
         {
             UserId = user.UserId,
             OtpHash = hasher.Hash(otp),
             ExpiresAt = DateTime.UtcNow.AddMinutes(OtpMinutes),
-            CreatedAt = DateTime.UtcNow
-        }, ct);
+            CreatedAt = DateTime.UtcNow,
+            FailedAttempts = 0,
+            IsUsed = false
+        };
 
-        // Không await: thời gian phản hồi như nhau dù email có tồn tại hay không
-        _ = email.SendOtpAsync(user.Email!, user.DisplayName, otp, OtpMinutes);
-        logger.LogInformation("Đã tạo OTP đặt lại mật khẩu cho '{Username}'.", user.Username);
+        // Lưu OTP vào database
+        await repo.AddResetAsync(resetRequest, ct);
+
+        try
+        {
+            // Gửi đến email lấy từ database, không dùng email SMTP
+            await email.SendOtpAsync(
+                user.Email,
+                user.DisplayName,
+                otp,
+                OtpMinutes);
+
+            logger.LogInformation(
+                "Đã gửi OTP đặt lại mật khẩu cho tài khoản {Username}.",
+                user.Username);
+        }
+        catch
+        {
+            // Nếu gửi mail thất bại thì vô hiệu hóa OTP
+            await repo.InvalidateResetsAsync(
+                user.UserId,
+                CancellationToken.None);
+
+            throw;
+        }
     }
 
-    // Bước 2: kiểm tra OTP. Đúng thì trả ResetToken
-    public async Task<string?> VerifyOtpAsync(string emailAddress, string otp, CancellationToken ct = default)
+    // BƯỚC 2: Xác thực OTP và cấp Reset Token
+    public async Task<string?> VerifyOtpAsync(
+        string emailAddress,
+        string otp,
+        CancellationToken ct = default)
     {
-        var user = await repo.GetByEmailAsync(NormalizeEmail(emailAddress), ct);
+        var user = await repo.GetByEmailAsync(
+            NormalizeEmail(emailAddress),
+            ct);
+
         if (user is null || !user.IsActive)
         {
-            hasher.VerifyDummy(otp);   // chống dò qua thời gian phản hồi
+            hasher.VerifyDummy(otp);
             return null;
         }
 
-        var req = await repo.GetLatestResetAsync(user.UserId, ct);
+        var req = await repo.GetLatestResetAsync(
+            user.UserId,
+            ct);
+
         if (req is null
-            || req.ResetTokenHash is not null           // OTP này đã đổi token rồi, không dùng lại
+            || req.ResetTokenHash is not null
             || req.ExpiresAt < DateTime.UtcNow
             || req.FailedAttempts >= MaxOtpAttempts)
         {
@@ -158,44 +209,75 @@ public class AuthService(
         if (!hasher.Verify(otp, req.OtpHash))
         {
             req.FailedAttempts++;
+
             await repo.SaveChangesAsync(ct);
-            logger.LogWarning("Sai OTP của '{Username}' (lần {N}).", user.Username, req.FailedAttempts);
+
+            logger.LogWarning(
+                "Nhập sai OTP cho tài khoản {Username}.",
+                user.Username);
+
             return null;
         }
 
-        // OTP đúng -> cấp token ngẫu nhiên 256 bit; DB chỉ lưu hash
-        string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
-                              .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        // Tạo Reset Token ngẫu nhiên
+        string token = Convert.ToBase64String(
+                RandomNumberGenerator.GetBytes(32))
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+
+        // Chỉ lưu hash của token
         req.ResetTokenHash = HashToken(token);
-        req.ResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(ResetTokenMinutes);
+
+        req.ResetTokenExpiresAt =
+            DateTime.UtcNow.AddMinutes(ResetTokenMinutes);
+
         await repo.SaveChangesAsync(ct);
 
         return token;
     }
 
-    // Bước 3: dùng ResetToken để đổi mật khẩu. 
-    public async Task<bool> ResetPasswordAsync(string resetToken, string newPassword, CancellationToken ct = default)
+    // BƯỚC 3: Đặt mật khẩu mới
+    public async Task<bool> ResetPasswordAsync(
+        string resetToken,
+        string newPassword,
+        CancellationToken ct = default)
     {
-        var req = await repo.GetResetByTokenHashAsync(HashToken(resetToken), ct);
+        var req = await repo.GetResetByTokenHashAsync(
+            HashToken(resetToken),
+            ct);
+
         if (req is null
             || req.IsUsed
             || req.ResetTokenExpiresAt is null
             || req.ResetTokenExpiresAt < DateTime.UtcNow
             || !req.User.IsActive)
+        {
             return false;
+        }
 
+        // Hash mật khẩu mới
         req.User.PasswordHash = hasher.Hash(newPassword);
-        req.IsUsed = true;                       // token chỉ dùng 1 lần
-        await repo.SaveChangesAsync(ct);         // 1 lần Save = đổi mật khẩu và đánh dấu đã dùng cùng lúc
 
-        logger.LogInformation("Đã đặt lại mật khẩu cho '{Username}'.", req.User.Username);
+        // Token chỉ sử dụng một lần
+        req.IsUsed = true;
+
+        await repo.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Đã đặt lại mật khẩu cho tài khoản {Username}.",
+            req.User.Username);
+
         return true;
     }
 
-    // Email lưu và so sánh dạng chữ thường, bỏ khoảng trắng
-    private static string NormalizeEmail(string e) => e.Trim().ToLowerInvariant();
+    // ================= HELPER =================
 
-    // Hash SHA-256 token ngẫu nhiên 
+    private static string NormalizeEmail(string email)
+        => email.Trim().ToLowerInvariant();
+
     private static string HashToken(string token)
-        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        => Convert.ToHexString(
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(token)));
 }

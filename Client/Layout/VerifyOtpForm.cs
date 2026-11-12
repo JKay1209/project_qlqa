@@ -1,28 +1,77 @@
-﻿using System;
+﻿using Client.Layout;
+using Client.Services;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Client.Layout;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Client.Layout
 {
     public partial class VerifyOtpForm : Form
     {
-        public VerifyOtpForm()
+        private readonly AuthService _auth = new AuthService();
+
+        private readonly string _email;
+
+        public VerifyOtpForm(string email)
         {
             InitializeComponent();
+
+            _email = email;
         }
 
-        private void btnVerifyOTP_Click(object sender, EventArgs e)
+        private async void btnVerifyOTP_Click(
+            object sender,
+            EventArgs e)
         {
-            ResetPasswordForm frm = new ResetPasswordForm();
+            string otp = txtOtp.Text.Trim();
 
-            frm.Show();
+            if (string.IsNullOrWhiteSpace(otp))
+            {
+                MessageBox.Show("Vui lòng nhập mã OTP.");
+                return;
+            }
 
-            this.Hide();
+            if (otp.Length != 6 || !otp.All(char.IsAsciiDigit))
+            {
+                MessageBox.Show("Mã OTP phải gồm 6 chữ số.");
+                return;
+            }
+
+            try
+            {
+                btnVerifyOTP.Enabled = false;
+
+                // Gửi email và OTP lên Server
+                var result = await _auth.VerifyOtpAsync(
+                    _email,
+                    otp);
+
+                // Server trả Reset Token nếu OTP đúng
+                string resetToken = result.ResetToken;
+
+                var form = new ResetPasswordForm(resetToken);
+
+                form.Show();
+
+                Hide();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Xác thực OTP thất bại",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnVerifyOTP.Enabled = true;
+            }
         }
     }
 }

@@ -11,9 +11,14 @@ public sealed record LoginRequest(string Username, string Password)
 // ====================== Register =======================
 
 // Dữ liệu Client gửi khi tạo tài khoản mới (chỉ Admin được gọi).
-public sealed record RegisterRequest(string Username, string Password, string DisplayName, UserRole Role, string? Email = null)
+public sealed record RegisterRequest(
+    string Username,
+    string Password,
+    string DisplayName,
+    UserRole Role,
+    string? Email = null)
 {
-    // che mat khau
+    // che mật khẩu
     public override string ToString() =>
         $"RegisterRequest {{ Username = {Username}, DisplayName = {DisplayName}, Role = {Role}, Password = *** }}";
 }

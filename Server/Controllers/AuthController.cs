@@ -44,29 +44,40 @@ public class AuthController(AuthService auth) : ControllerBase
 
     // ================== Register =========================
     // POST /api/auth/register
-    // Cho phép người dùng mới đăng ký tài khoản
+    // Cho phép người dùng chưa đăng nhập đăng ký tài khoản.
     [AllowAnonymous]
     [HttpPost("register")]
-
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        // Không cho người lạ tự đăng ký vai trò Admin
-        if (request.Role == UserRole.Admin && !User.IsInRole(nameof(UserRole.Admin)))
-            return StatusCode(StatusCodes.Status403Forbidden,
-                new ErrorResponse("Không được tạo tài khoản quản trị."));
+        // Chỉ Admin đã xác thực mới được tạo tài khoản với vai trò tùy chọn.
+        bool isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole(nameof(UserRole.Admin));
 
-        string? error = ValidateRegister(request);
+        // Người đăng ký công khai luôn được cấp quyền Waiter.
+        var safeRequest = request with
+        {
+            Role = isAdmin ? request.Role : UserRole.Waiter
+        };
+
+        string? error = ValidateRegister(safeRequest);
+
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
 
-        var (user, code) = await auth.RegisterAsync(request, ct);
+        var (user, code) = await auth.RegisterAsync(safeRequest, ct);
 
         return code switch
         {
-            ErrorCode.None => StatusCode(StatusCodes.Status201Created, user),
-            ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản hoặc email đã tồn tại.")),
-            _ => StatusCode(StatusCodes.Status500InternalServerError,
-                            new ErrorResponse("Không thể tạo tài khoản."))
+            ErrorCode.None =>
+                StatusCode(StatusCodes.Status201Created, user),
+
+            ErrorCode.Conflict =>
+                Conflict(new ErrorResponse(
+                    "Tên tài khoản hoặc email đã tồn tại.")),
+
+            _ =>
+                StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ErrorResponse("Không thể tạo tài khoản."))
         };
     }
 
@@ -173,5 +184,5 @@ public class AuthController(AuthService auth) : ControllerBase
         => !string.IsNullOrWhiteSpace(email) && email.Length <= 100 && System.Net.Mail.MailAddress.TryCreate(email, out _);
 
 
-    // TODO: POST /api/auth/logout, POST /api/auth/refresh (làm sau)
+    // TODO: POST /api/auth/logout, POST /api/auth/refresh 
 }

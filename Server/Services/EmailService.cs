@@ -5,50 +5,76 @@ using Server.Config;
 
 namespace Server.Services;
 
-public class EmailService(IOptions<EmailOptions> options, ILogger<EmailService> logger, IHostEnvironment env)
+public class EmailService(IOptions<EmailOptions> options, ILogger<EmailService> logger)
 {
     private readonly EmailOptions _opt = options.Value;
 
-    // Gửi mail chứa OTP.
     public async Task SendOtpAsync(string toEmail, string displayName, string otp, int validMinutes)
     {
+        if (string.IsNullOrWhiteSpace(_opt.Host)
+            || string.IsNullOrWhiteSpace(_opt.User)
+            || string.IsNullOrWhiteSpace(_opt.Password)
+            || string.IsNullOrWhiteSpace(_opt.FromAddress))
+        {
+            throw new InvalidOperationException(
+                "Chưa cấu hình SMTP trong appsettings hoặc User Secrets.");
+        }
+
         try
         {
-            // Chưa cấu hình SMTP: chỉ khi chạy Development mới in OTP ra log để test
-            if (string.IsNullOrWhiteSpace(_opt.Host))
-            {
-                if (env.IsDevelopment())
-                    logger.LogWarning("[DEV] OTP của {Email}: {Otp}", toEmail, otp);
-                else
-                    logger.LogError("Chưa cấu hình Email:Host, không thể gửi OTP.");
-                return;
-            }
-
             using var client = new SmtpClient(_opt.Host, _opt.Port)
             {
                 EnableSsl = _opt.EnableSsl,
-                Credentials = new NetworkCredential(_opt.User, _opt.Password)
+                Credentials = new NetworkCredential(_opt.User, _opt.Password),
+                Timeout = 15000
             };
 
             using var message = new MailMessage
             {
                 From = new MailAddress(_opt.FromAddress, _opt.FromName),
-                Subject = "Mã xác thực đặt lại mật khẩu",
+
+                Subject = "Mã OTP đặt lại mật khẩu",
+
                 IsBodyHtml = true,
+
                 Body = $"""
-                    <p>Xin chào <b>{WebUtility.HtmlEncode(displayName)}</b>,</p>
-                    <p>Mã OTP đặt lại mật khẩu của bạn là:</p>
-                    <h2 style="letter-spacing:4px">{otp}</h2>
-                    <p>Mã có hiệu lực trong {validMinutes} phút.</p>
+                    <html>
+                    <body>
+                        <h3>Xin chào {WebUtility.HtmlEncode(displayName)},</h3>
+
+                        <p>Bạn vừa yêu cầu đặt lại mật khẩu.</p>
+
+                        <p>Mã OTP của bạn là:</p>
+
+                        <h1 style="letter-spacing: 5px">
+                            {otp}
+                        </h1>
+
+                        <p>Mã OTP có hiệu lực trong
+                        <b>{validMinutes} phút</b>.</p>
+
+                        <p>Nếu bạn không thực hiện yêu cầu này,
+                        hãy bỏ qua email.</p>
+                    </body>
+                    </html>
                     """
             };
-            message.To.Add(toEmail);
+
+            // Địa chỉ nhận OTP của người dùng
+            message.To.Add(new MailAddress(toEmail));
 
             await client.SendMailAsync(message);
+
+            logger.LogInformation(
+                "Đã gửi email OTP tới {Email}.",
+                toEmail);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Gửi email OTP thất bại tới {Email}", toEmail);
+            logger.LogError(ex, "Gửi email OTP thất bại tới {Email}.", toEmail);
+
+            // Không nuốt lỗi: để AuthService biết gửi thất bại
+            throw new InvalidOperationException( "Không thể gửi email OTP. Vui lòng kiểm tra cấu hình SMTP.", ex);
         }
     }
 }
