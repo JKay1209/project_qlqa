@@ -20,31 +20,31 @@ namespace project_qlqa
 
         private void main_Load(object sender, EventArgs e)
         {
-           
+
             BackgroundImageLayout = ImageLayout.Stretch;
             picLogo.SizeMode = PictureBoxSizeMode.Zoom;
 
-          
+
             panelLogin.BackColor = Color.FromArgb(140, 255, 255, 255);
 
-           
+
             btnLogin.BackColor = Color.FromArgb(41, 52, 164);
             btnLogin.ForeColor = Color.White;
             btnLogin.FlatStyle = FlatStyle.Flat;
             btnLogin.FlatAppearance.BorderSize = 0;
 
-           
+
             txtPass.UseSystemPasswordChar = true;
 
-          
+
             txtUser.Font = new Font("Segoe UI", 11);
             txtPass.Font = new Font("Segoe UI", 11);
 
-           
+
             RoundPanel(panelLogin, 30);
             RoundButton(btnLogin, 20);
 
-           
+
             CenterPanel();
         }
 
@@ -92,7 +92,7 @@ namespace project_qlqa
             CenterPanel();
         }
 
-        private async void btnLogin_Click(object sender,EventArgs e)
+        private async void btnLogin_Click(object sender, EventArgs e)
         {
             string user = txtUser.Text.Trim();
             string pass = txtPass.Text;
@@ -160,10 +160,18 @@ namespace project_qlqa
         private void lblTitle_Click(object sender, EventArgs e)
         {
         }
-        private void btnOpenRegister_Click(object sender,EventArgs e)
+        private void btnOpenRegister_Click(object sender, EventArgs e)
         {
-            RegisterForm frm =
-                new RegisterForm();
+            RegisterForm frm = new RegisterForm();
+
+            frm.Show();
+
+            this.Hide();
+        }
+
+        private void linkForgot_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            ForgotPasswordForm frm = new ForgotPasswordForm();
 
             frm.Show();
 

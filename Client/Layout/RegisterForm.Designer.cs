@@ -151,8 +151,13 @@
             DoubleBuffered = true;
             Margin = new Padding(3, 4, 3, 4);
             Name = "RegisterForm";
+
+            Text = "RegisterForm";
+            Load += RegisterForm_Load;
+
             StartPosition = FormStartPosition.CenterParent;
             Text = "Tạo tài khoản";
+
             ResumeLayout(false);
             PerformLayout();
         }

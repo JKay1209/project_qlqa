@@ -8,11 +8,17 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using Client.Services;
+using Shared.DTOs.Auth;
+using Shared.Enums;
 
 namespace Client.Layout
 {
     public partial class RegisterForm : Form
     {
+
+        private readonly AuthService _auth = new AuthService();
+
         public sealed class RoleItem
         {
             public string Text { get; }
@@ -52,7 +58,6 @@ namespace Client.Layout
         {
 
         }
-
         private async void btnRegister_Click(object sender, EventArgs e)
         {
             string username = txtUsername.Text.Trim();
@@ -100,7 +105,6 @@ namespace Client.Layout
                 btnRegister.Enabled = true;
             }
         }
-
         private void lnkLogin_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             main loginForm = new main();
@@ -108,6 +112,11 @@ namespace Client.Layout
             loginForm.Show();
 
             this.Close();
+        }
+
+        private void RegisterForm_Load(object sender, EventArgs e)
+        {
+
         }
 
     }

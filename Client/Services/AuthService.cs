@@ -21,11 +21,12 @@ namespace Client.Services
             CancellationToken ct = default)
             => PostAsync<UserDto>("api/auth/register", request, ct);
 
-        public async Task ForgotPasswordAsync(
-            string email,
-            CancellationToken ct = default)
+
+        public async Task ForgotPasswordAsync(string email,CancellationToken ct = default)
         {
-            await Task.CompletedTask;
+            await PostAsync(
+                "api/auth/forgot-password",
+                new ForgotPasswordRequest(email));
         }
 
         public async Task<VerifyOtpResponse> VerifyOtpAsync(

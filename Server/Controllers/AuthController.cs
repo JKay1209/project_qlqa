@@ -47,6 +47,7 @@ public class AuthController(AuthService auth) : ControllerBase
     // Cho phép người dùng mới đăng ký tài khoản
     [AllowAnonymous]
     [HttpPost("register")]
+
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
         // Không cho người lạ tự đăng ký vai trò Admin
