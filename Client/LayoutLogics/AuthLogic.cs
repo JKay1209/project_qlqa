@@ -48,15 +48,15 @@ public class AuthLogic
     // ============================ Register ==================
     // Điều phối: kiểm tra quyền phía Client, gọi service, thông báo.
     public async Task<(bool Ok, string? Error)> RegisterAsync(
-        string username, string password, string displayName, UserRole role, CancellationToken ct = default)
+        string username, string password, string displayName, UserRole role,
+        string? email = null, CancellationToken ct = default)
     {
-        // Kiem tra role admin o client
         if (!SessionManager.IsLoggedIn || SessionManager.Role != UserRole.Admin)
             return (false, "Chỉ Admin mới được tạo tài khoản.");
 
         try
         {
-            await _auth.RegisterAsync(new RegisterRequest(username, password, displayName, role), ct);
+            await _auth.RegisterAsync(new RegisterRequest(username, password, displayName, role, email), ct);
             return (true, null);
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
