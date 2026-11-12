@@ -23,6 +23,10 @@ public class EmployeeRepository(RestaurantDbContext db)
     public Task<bool> UsernameExistsAsync(string username, CancellationToken ct = default)
         => db.Users.AnyAsync(u => u.Username == username, ct);
 
+    // Kiem tra email trong database
+    public Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
+    => db.Users.AnyAsync(u => u.Email == email, ct);
+
     // Them username moi vao database
     public async Task AddAsync(User user, CancellationToken ct = default)
     {

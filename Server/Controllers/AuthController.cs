@@ -44,17 +44,12 @@ public class AuthController(AuthService auth) : ControllerBase
 
     // ================== Register =========================
     // POST /api/auth/register
-    // Cho phép người dùng chưa đăng nhập đăng ký tài khoản mới.
-    // Riêng vai trò Admin: chỉ Admin đã đăng nhập mới được tạo (xem kiểm tra ở đầu phương thức).
-    [AllowAnonymous]
+    // Chi cho phep admin tao tai khoan moi
+    // POST /api/auth/register  — chỉ Admin đã đăng nhập
+    [Authorize(Roles = nameof(UserRole.Admin))]
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        // Không cho người lạ tự đăng ký vai trò Admin
-        if (request.Role == UserRole.Admin && !User.IsInRole(nameof(UserRole.Admin)))
-            return StatusCode(StatusCodes.Status403Forbidden,
-                new ErrorResponse("Không được tạo tài khoản quản trị."));
-
         string? error = ValidateRegister(request);
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
@@ -64,9 +59,9 @@ public class AuthController(AuthService auth) : ControllerBase
         return code switch
         {
             ErrorCode.None => StatusCode(StatusCodes.Status201Created, user),
-            ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản đã tồn tại.")),
+            ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản hoặc email đã tồn tại.")),
             _ => StatusCode(StatusCodes.Status500InternalServerError,
-                                             new ErrorResponse("Không thể tạo tài khoản."))
+                            new ErrorResponse("Không thể tạo tài khoản."))
         };
     }
 
@@ -93,6 +88,9 @@ public class AuthController(AuthService auth) : ControllerBase
 
         if (!Enum.IsDefined(r.Role))
             return "Vai trò không hợp lệ.";
+
+        if (!string.IsNullOrWhiteSpace(r.Email) && !IsValidEmail(r.Email))
+            return "Email không hợp lệ.";
 
         return null;
     }
