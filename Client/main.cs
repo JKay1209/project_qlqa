@@ -99,17 +99,13 @@ namespace project_qlqa
 
             if (string.IsNullOrWhiteSpace(user))
             {
-                MessageBox.Show(
-                    "Vui lòng nhập tài khoản");
-
+                MessageBox.Show("Vui lòng nhập tài khoản");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(pass))
             {
-                MessageBox.Show(
-                    "Vui lòng nhập mật khẩu");
-
+                MessageBox.Show("Vui lòng nhập mật khẩu");
                 return;
             }
 
@@ -117,15 +113,11 @@ namespace project_qlqa
 
             try
             {
-                var result =
-                    await _authLogic.LoginAsync(
-                        user,
-                        pass);
+                var result = await _authLogic.LoginAsync(user, pass);
 
                 if (result.Ok)
                 {
-                    MessageBox.Show(
-                        "Đăng nhập thành công");
+                    MessageBox.Show("Đăng nhập thành công");
 
                     MainForm frm = new MainForm();
 
@@ -135,8 +127,7 @@ namespace project_qlqa
                 }
                 else
                 {
-                    MessageBox.Show(
-                        result.Error);
+                    MessageBox.Show(result.Error);
                 }
             }
             finally
@@ -163,9 +154,8 @@ namespace project_qlqa
         private void btnOpenRegister_Click(object sender, EventArgs e)
         {
             RegisterForm frm = new RegisterForm();
-
-            frm.Show();
-
+            frm.FormClosed += (s, args) => this.Show();
+            frm.Show(this);
             this.Hide();
         }
 
