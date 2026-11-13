@@ -162,9 +162,8 @@ namespace project_qlqa
         private void linkForgot_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             ForgotPasswordForm frm = new ForgotPasswordForm();
-
-            frm.Show();
-
+            frm.FormClosed += (s, args) => this.Show();
+            frm.Show(this);
             this.Hide();
         }
     }

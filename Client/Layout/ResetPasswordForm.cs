@@ -1,4 +1,5 @@
 ﻿using Client.Services;
+using project_qlqa;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -69,7 +70,7 @@ namespace Client.Layout
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
 
-                Close();
+                BackToLogin();
             }
             catch (Exception ex)
             {
@@ -83,6 +84,34 @@ namespace Client.Layout
             {
                 btnResetPassword.Enabled = true;
             }
+        }
+
+        // Đóng các form của luồng quên mật khẩu và quay về màn hình đăng nhập
+        private void BackToLogin()
+        {
+            // Đóng các form đang bị ẩn (ForgotPassword, VerifyOtp)
+            var flowForms = Application.OpenForms
+                .Cast<Form>()
+                .Where(f => f is ForgotPasswordForm || f is VerifyOtpForm)
+                .ToList();
+
+            foreach (var f in flowForms)
+                f.Close();
+
+            // Hiện lại form login đã bị Hide() trước đó
+            var login = Application.OpenForms.OfType<main>().FirstOrDefault();
+            if (login is null)
+            {
+                login = new main();
+                login.Show();
+            }
+            else
+            {
+                login.Show();
+                login.Activate();
+            }
+
+            Close();   // đóng chính form đặt lại mật khẩu
         }
 
         private void ResetPasswordform_Load(object sender, EventArgs e)
