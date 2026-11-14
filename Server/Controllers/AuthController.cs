@@ -172,8 +172,8 @@ public class AuthController(AuthService auth) : ControllerBase
         if (string.IsNullOrWhiteSpace(request.ResetToken) || request.ResetToken.Length > 100)
             return BadRequest(new ErrorResponse("Dữ liệu không hợp lệ."));
 
-        if (string.IsNullOrEmpty(request.NewPassword) || request.NewPassword.Length < 8 || request.NewPassword.Length > 128)
-            return BadRequest(new ErrorResponse("Mật khẩu phải từ 8 đến 128 ký tự."));
+        if (!IsStrongPassword(request.NewPassword, out string? passwordError))
+            return BadRequest(new ErrorResponse(passwordError!));
 
         bool ok = await auth.ResetPasswordAsync(request.ResetToken, request.NewPassword, ct);
         return ok
