@@ -6,6 +6,7 @@ namespace Client.Services
 {
     internal class AuthService : ApiService
     {
+        // ============================== Login =================================
         public async Task<LoginResponse> LoginAsync(
             string username,
             string password,
@@ -16,11 +17,14 @@ namespace Client.Services
             return await PostAsync<LoginResponse>("api/auth/login", request, ct);
         }
 
+
+        // ============================== Register =================================
         public Task<UserDto> RegisterAsync(RegisterRequest request,
             CancellationToken ct = default)
             => PostAsync<UserDto>("api/auth/register", request, ct);
 
 
+        // ============================== Forgot password =================================
         // Bước 1: Gửi email yêu cầu OTP
         public Task<MessageResponse> ForgotPasswordAsync(
             string email,
@@ -47,5 +51,10 @@ namespace Client.Services
             => PostAsync<MessageResponse>(
                 "api/auth/reset-password",
                 new ResetPasswordRequest(resetToken, newPassword), ct);
+
+
+        // ============================== Logout =================================
+        public Task<MessageResponse> LogoutAsync(CancellationToken ct = default)
+            => PostAsync<MessageResponse>("api/auth/logout", new { }, ct);
     }
 }

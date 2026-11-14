@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Server.Security;
 using Server.Services;
 using Shared.DTOs.Auth;
 using Shared.Enums;
@@ -184,5 +186,19 @@ public class AuthController(AuthService auth) : ControllerBase
         => !string.IsNullOrWhiteSpace(email) && email.Length <= 100 && System.Net.Mail.MailAddress.TryCreate(email, out _);
 
 
-    // TODO: POST /api/auth/logout, POST /api/auth/refresh 
+    // ============================== Logout =================================
+    // POST /api/auth/logout
+    [Authorize]
+    [HttpPost("logout")]
+    public ActionResult<MessageResponse> Logout([FromServices] TokenBlacklist blacklist)
+    {
+        string header = Request.Headers.Authorization.ToString();
+        if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var jwt = new JsonWebTokenHandler().ReadJsonWebToken(header["Bearer ".Length..]);
+            if (!string.IsNullOrEmpty(jwt.Id))
+                blacklist.Revoke(jwt.Id, jwt.ValidTo);
+        }
+        return Ok(new MessageResponse("Đã đăng xuất."));
+    }
 }

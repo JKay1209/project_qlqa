@@ -44,10 +44,6 @@ public class AuthLogic
         }
     }
 
-
-    // ============================ Register ==================
-    // Điều phối: kiểm tra quyền phía Client, gọi service, thông báo.
-
     // ============================ Register ==================
     // Người chưa đăng nhập được đăng ký công khai.
     // Người đăng ký công khai chỉ được cấp vai trò Waiter.
@@ -140,9 +136,22 @@ public class AuthLogic
     }
 
 
-    public void Logout()
+    // ============================== logout =================================
+    public async Task LogoutAsync()
     {
-        TokenManager.Clear();
-        SessionManager.End();
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await _auth.LogoutAsync(cts.Token);
+        }
+        catch
+        {
+            // Server tắt, mất mạng hoặc token đã hết hạn: vẫn đăng xuất cục bộ bình thường
+        }
+        finally
+        {
+            TokenManager.Clear();
+            SessionManager.End();
+        }
     }
 }

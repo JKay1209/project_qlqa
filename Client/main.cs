@@ -166,5 +166,12 @@ namespace project_qlqa
             frm.Show(this);
             this.Hide();
         }
+
+        // logout references
+        public void ResetForm()
+        {
+            txtPass.Clear();
+            btnLogin.Enabled = true;
+        }
     }
 }

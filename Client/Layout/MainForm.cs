@@ -1,4 +1,5 @@
-﻿using Client.Security;
+﻿using Client.LayoutLogics;
+using Client.Security;
 using project_qlqa;
 using Shared.Enums;
 using System;
@@ -30,17 +31,16 @@ namespace Client.Layout
             form.ShowDialog(this);  // dialog: Admin tạo xong quay lại MainForm
         }
 
-        private void btnLogout_Click(object sender, EventArgs e)
+        private async void btnLogout_Click(object sender, EventArgs e)
         {
-            SessionManager.End();
+            btnLogout.Enabled = false;
+            await new AuthLogic().LogoutAsync();
 
-            TokenManager.Clear();
+            var login = Application.OpenForms.OfType<main>().FirstOrDefault();
+            if (login is null) { login = new main(); login.Show(); }
+            else { login.ResetForm(); login.Show(); login.Activate(); }
 
-            main loginForm = new main();
-
-            loginForm.Show();
-
-            this.Close();
+            Close();
         }
     }
 }
