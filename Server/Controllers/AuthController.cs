@@ -43,13 +43,18 @@ public class AuthController(AuthService auth) : ControllerBase
 
 
     // ================== Register =========================
-    // Cho phep nguoi dung dang nhap tai khoan moi
+    // POST /api/auth/register
+    // Cho phép người dùng mới đăng ký tài khoản
     [AllowAnonymous]
     [HttpPost("register")]
 
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        Console.WriteLine("REGISTER API HIT");
+        // Không cho người lạ tự đăng ký vai trò Admin
+        if (request.Role == UserRole.Admin && !User.IsInRole(nameof(UserRole.Admin)))
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new ErrorResponse("Không được tạo tài khoản quản trị."));
+
         string? error = ValidateRegister(request);
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
