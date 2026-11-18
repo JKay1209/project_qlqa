@@ -31,6 +31,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(main));
             panelLogin = new Panel();
             btnOpenRegister = new LinkLabel();
+            lblSubTitle = new Label();
             linkForgot = new LinkLabel();
             btnLogin = new Button();
             chkRemember = new CheckBox();
@@ -38,7 +39,6 @@
             lblPass = new Label();
             txtUser = new TextBox();
             lblUser = new Label();
-            lblSubTitle = new Label();
             lblTitle = new Label();
             picLogo = new PictureBox();
             panelLogin.SuspendLayout();
@@ -48,9 +48,9 @@
             // panelLogin
             // 
             panelLogin.BackColor = Color.FromArgb(150, 255, 255, 255);
-            panelLogin.Controls.Add(btnOpenRegister);
             panelLogin.Controls.Add(lblSubTitle);
             panelLogin.Controls.Add(linkForgot);
+            panelLogin.Controls.Add(btnOpenRegister);
             panelLogin.Controls.Add(btnLogin);
             panelLogin.Controls.Add(chkRemember);
             panelLogin.Controls.Add(txtPass);
@@ -69,15 +69,27 @@
             // btnOpenRegister
             // 
             btnOpenRegister.AutoSize = true;
-            btnOpenRegister.Font = new Font("Segoe UI", 12.75F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            btnOpenRegister.Location = new Point(80, 372);
+            btnOpenRegister.Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 163);
+            btnOpenRegister.Location = new Point(52, 333);
             btnOpenRegister.Name = "btnOpenRegister";
             btnOpenRegister.RightToLeft = RightToLeft.No;
-            btnOpenRegister.Size = new Size(157, 23);
+            btnOpenRegister.Size = new Size(121, 17);
             btnOpenRegister.TabIndex = 11;
             btnOpenRegister.TabStop = true;
             btnOpenRegister.Text = "Đăng ký tài khoản";
             btnOpenRegister.Click += btnOpenRegister_Click;
+            // 
+            // lblSubTitle
+            // 
+            lblSubTitle.AutoSize = true;
+            lblSubTitle.Font = new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 163);
+            lblSubTitle.ForeColor = SystemColors.GrayText;
+            lblSubTitle.Location = new Point(52, 109);
+            lblSubTitle.Name = "lblSubTitle";
+            lblSubTitle.Size = new Size(133, 13);
+            lblSubTitle.TabIndex = 2;
+            lblSubTitle.Text = "Chào mừng bạn quay lại";
+            lblSubTitle.Click += lblSubTitle_Click;
             // 
             // linkForgot
             // 
@@ -152,18 +164,6 @@
             lblUser.Size = new Size(58, 15);
             lblUser.TabIndex = 3;
             lblUser.Text = "Tài khoản";
-            // 
-            // lblSubTitle
-            // 
-            lblSubTitle.AutoSize = true;
-            lblSubTitle.Font = new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            lblSubTitle.ForeColor = SystemColors.GrayText;
-            lblSubTitle.Location = new Point(52, 109);
-            lblSubTitle.Name = "lblSubTitle";
-            lblSubTitle.Size = new Size(133, 13);
-            lblSubTitle.TabIndex = 2;
-            lblSubTitle.Text = "Chào mừng bạn quay lại";
-            lblSubTitle.Click += lblSubTitle_Click;
             // 
             // lblTitle
             // 
