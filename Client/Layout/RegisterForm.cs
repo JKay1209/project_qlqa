@@ -45,6 +45,7 @@ namespace Client.Layout
         new("Thu ngân",              UserRole.Cashier),
         new("Bếp",                   UserRole.Kitchen),
         new("Phục vụ",               UserRole.Waiter),
+        new("Khách hàng",            UserRole.Customer),
     };
 
             cmbRole.DisplayMember = nameof(RoleItem.Text);    // chữ hiển thị
@@ -92,7 +93,12 @@ namespace Client.Layout
                 if (ok)
                 {
                     MessageBox.Show("Tạo tài khoản thành công.");
-                    Close();
+
+                    main loginForm = new main();
+
+                    loginForm.Show();
+
+                    this.Hide();
                 }
                 else
                 {

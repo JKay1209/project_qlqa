@@ -51,8 +51,6 @@ public class AuthLogic
         string username, string password, string displayName, UserRole role,
         string? email = null, CancellationToken ct = default)
     {
-        if (!SessionManager.IsLoggedIn || SessionManager.Role != UserRole.Admin)
-            return (false, "Chỉ Admin mới được tạo tài khoản.");
 
         try
         {

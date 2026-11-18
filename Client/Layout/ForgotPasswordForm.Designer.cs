@@ -99,6 +99,7 @@
             btnVerifyOTP.TabIndex = 6;
             btnVerifyOTP.Text = "Xác thực OTP";
             btnVerifyOTP.UseVisualStyleBackColor = true;
+            btnVerifyOTP.Click += btnVerifyOTP_Click;
             // 
             // ForgotPasswordForm
             // 
