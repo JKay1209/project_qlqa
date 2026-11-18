@@ -28,17 +28,21 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ForgotPasswordForm));
             label1 = new Label();
             txtEmail = new TextBox();
             label2 = new Label();
             btnSendOTP = new Button();
+            lblOTP = new Label();
+            txtOTP = new TextBox();
+            btnVerifyOTP = new Button();
             SuspendLayout();
             // 
             // label1
             // 
             label1.AutoSize = true;
             label1.Font = new Font("Segoe UI", 14.25F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            label1.Location = new Point(132, 81);
+            label1.Location = new Point(203, 49);
             label1.Name = "label1";
             label1.Size = new Size(171, 25);
             label1.TabIndex = 0;
@@ -46,7 +50,7 @@
             // 
             // txtEmail
             // 
-            txtEmail.Location = new Point(132, 180);
+            txtEmail.Location = new Point(159, 111);
             txtEmail.Name = "txtEmail";
             txtEmail.Size = new Size(225, 23);
             txtEmail.TabIndex = 1;
@@ -55,7 +59,7 @@
             // 
             label2.AutoSize = true;
             label2.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            label2.Location = new Point(132, 144);
+            label2.Location = new Point(159, 91);
             label2.Name = "label2";
             label2.Size = new Size(39, 17);
             label2.TabIndex = 2;
@@ -63,25 +67,57 @@
             // 
             // btnSendOTP
             // 
-            btnSendOTP.Location = new Point(132, 246);
+            btnSendOTP.Location = new Point(159, 149);
             btnSendOTP.Name = "btnSendOTP";
             btnSendOTP.Size = new Size(75, 23);
             btnSendOTP.TabIndex = 3;
-            btnSendOTP.Text = "GỬI OTP";
+            btnSendOTP.Text = "Gửi OTP";
             btnSendOTP.UseVisualStyleBackColor = true;
             btnSendOTP.Click += btnSendOtp_Click;
+            // 
+            // lblOTP
+            // 
+            lblOTP.AutoSize = true;
+            lblOTP.Location = new Point(159, 188);
+            lblOTP.Name = "lblOTP";
+            lblOTP.Size = new Size(49, 15);
+            lblOTP.TabIndex = 4;
+            lblOTP.Text = "Mã OTP";
+            // 
+            // txtOTP
+            // 
+            txtOTP.Location = new Point(159, 206);
+            txtOTP.Name = "txtOTP";
+            txtOTP.Size = new Size(225, 23);
+            txtOTP.TabIndex = 5;
+            // 
+            // btnVerifyOTP
+            // 
+            btnVerifyOTP.Location = new Point(159, 245);
+            btnVerifyOTP.Name = "btnVerifyOTP";
+            btnVerifyOTP.Size = new Size(93, 23);
+            btnVerifyOTP.TabIndex = 6;
+            btnVerifyOTP.Text = "Xác thực OTP";
+            btnVerifyOTP.UseVisualStyleBackColor = true;
             // 
             // ForgotPasswordForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(506, 450);
+            BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
+            BackgroundImageLayout = ImageLayout.Zoom;
+            ClientSize = new Size(584, 331);
+            Controls.Add(btnVerifyOTP);
+            Controls.Add(txtOTP);
+            Controls.Add(lblOTP);
             Controls.Add(btnSendOTP);
             Controls.Add(label2);
             Controls.Add(txtEmail);
             Controls.Add(label1);
+            DoubleBuffered = true;
             Name = "ForgotPasswordForm";
-            Text = "ForgotPasswordForm";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "a";
             Load += ForgotPasswordForm_Load;
             ResumeLayout(false);
             PerformLayout();
@@ -93,5 +129,8 @@
         private TextBox txtEmail;
         private Label label2;
         private Button btnSendOTP;
+        private Label lblOTP;
+        private TextBox txtOTP;
+        private Button btnVerifyOTP;
     }
 }

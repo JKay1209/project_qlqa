@@ -33,64 +33,59 @@
             // 
             lblTitle.AutoSize = true;
             lblTitle.BackColor = Color.Transparent;
-            lblTitle.Font = new Font("Century", 18F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblTitle.ForeColor = Color.Gold;
-            lblTitle.Location = new Point(302, 59);
+            lblTitle.Font = new Font("Segoe UI Black", 18F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lblTitle.ForeColor = Color.Crimson;
+            lblTitle.Location = new Point(293, 33);
             lblTitle.Name = "lblTitle";
-            lblTitle.Size = new Size(309, 35);
+            lblTitle.Size = new Size(211, 32);
             lblTitle.TabIndex = 8;
             lblTitle.Text = "TẠO TÀI KHOẢN";
             lblTitle.Click += lblTitle_Click;
             // 
             // txtUsername
             // 
-            txtUsername.Location = new Point(350, 150);
-            txtUsername.Margin = new Padding(3, 4, 3, 4);
+            txtUsername.Location = new Point(306, 76);
             txtUsername.MaxLength = 50;
             txtUsername.Name = "txtUsername";
             txtUsername.PlaceholderText = "Tên đăng nhập";
-            txtUsername.Size = new Size(217, 27);
+            txtUsername.Size = new Size(190, 23);
             txtUsername.TabIndex = 0;
             // 
             // txtDisplayName
             // 
-            txtDisplayName.Location = new Point(350, 198);
-            txtDisplayName.Margin = new Padding(3, 4, 3, 4);
+            txtDisplayName.Location = new Point(306, 115);
             txtDisplayName.MaxLength = 100;
             txtDisplayName.Name = "txtDisplayName";
             txtDisplayName.PlaceholderText = "Tên hiển thị";
-            txtDisplayName.Size = new Size(217, 27);
+            txtDisplayName.Size = new Size(190, 23);
             txtDisplayName.TabIndex = 1;
             // 
             // txtEmail
             // 
-            txtEmail.Location = new Point(350, 246);
-            txtEmail.Margin = new Padding(3, 4, 3, 4);
+            txtEmail.Location = new Point(306, 154);
             txtEmail.MaxLength = 100;
             txtEmail.Name = "txtEmail";
             txtEmail.PlaceholderText = "Email";
-            txtEmail.Size = new Size(217, 27);
+            txtEmail.Size = new Size(190, 23);
             txtEmail.TabIndex = 2;
             // 
             // txtPassword
             // 
-            txtPassword.Location = new Point(350, 294);
-            txtPassword.Margin = new Padding(3, 4, 3, 4);
+            txtPassword.Location = new Point(306, 193);
             txtPassword.MaxLength = 128;
             txtPassword.Name = "txtPassword";
             txtPassword.PlaceholderText = "Mật khẩu";
-            txtPassword.Size = new Size(217, 27);
+            txtPassword.Size = new Size(190, 23);
             txtPassword.TabIndex = 3;
             txtPassword.UseSystemPasswordChar = true;
             // 
             // txtConfirmPassword
             // 
-            txtConfirmPassword.Location = new Point(350, 342);
-            txtConfirmPassword.Margin = new Padding(3, 4, 3, 4);
+            txtConfirmPassword.Location = new Point(306, 233);
             txtConfirmPassword.MaxLength = 128;
             txtConfirmPassword.Name = "txtConfirmPassword";
             txtConfirmPassword.PlaceholderText = "Xác nhận mật khẩu";
-            txtConfirmPassword.Size = new Size(217, 27);
+            txtConfirmPassword.Size = new Size(190, 23);
             txtConfirmPassword.TabIndex = 4;
             txtConfirmPassword.UseSystemPasswordChar = true;
             // 
@@ -98,20 +93,18 @@
             // 
             cmbRole.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbRole.FormattingEnabled = true;
-            cmbRole.Location = new Point(350, 390);
-            cmbRole.Margin = new Padding(3, 4, 3, 4);
+            cmbRole.Location = new Point(306, 273);
             cmbRole.Name = "cmbRole";
-            cmbRole.Size = new Size(217, 28);
+            cmbRole.Size = new Size(190, 23);
             cmbRole.TabIndex = 5;
             // 
             // btnRegister
             // 
             btnRegister.FlatStyle = FlatStyle.Flat;
             btnRegister.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            btnRegister.Location = new Point(391, 440);
-            btnRegister.Margin = new Padding(3, 4, 3, 4);
+            btnRegister.Location = new Point(339, 302);
             btnRegister.Name = "btnRegister";
-            btnRegister.Size = new Size(134, 43);
+            btnRegister.Size = new Size(117, 32);
             btnRegister.TabIndex = 6;
             btnRegister.Text = "TẠO";
             btnRegister.UseVisualStyleBackColor = true;
@@ -122,9 +115,9 @@
             lnkLogin.AutoSize = true;
             lnkLogin.BackColor = Color.Transparent;
             lnkLogin.LinkColor = Color.Red;
-            lnkLogin.Location = new Point(370, 500);
+            lnkLogin.Location = new Point(323, 343);
             lnkLogin.Name = "lnkLogin";
-            lnkLogin.Size = new Size(197, 20);
+            lnkLogin.Size = new Size(155, 15);
             lnkLogin.TabIndex = 7;
             lnkLogin.TabStop = true;
             lnkLogin.Text = "Đã có tài khoản? Đăng nhập";
@@ -133,12 +126,12 @@
             // RegisterForm
             // 
             AcceptButton = btnRegister;
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ControlDark;
             BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
             BackgroundImageLayout = ImageLayout.Zoom;
-            ClientSize = new Size(914, 600);
+            ClientSize = new Size(804, 461);
             Controls.Add(lblTitle);
             Controls.Add(txtUsername);
             Controls.Add(txtDisplayName);
@@ -149,15 +142,10 @@
             Controls.Add(btnRegister);
             Controls.Add(lnkLogin);
             DoubleBuffered = true;
-            Margin = new Padding(3, 4, 3, 4);
             Name = "RegisterForm";
-
-            Text = "RegisterForm";
-            Load += RegisterForm_Load;
-
             StartPosition = FormStartPosition.CenterParent;
             Text = "Tạo tài khoản";
-
+            Load += RegisterForm_Load;
             ResumeLayout(false);
             PerformLayout();
         }

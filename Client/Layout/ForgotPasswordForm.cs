@@ -12,9 +12,17 @@ namespace Client.Layout
     public partial class ForgotPasswordForm : Form
     {
         private readonly AuthService _auth = new AuthService();
+
+        private string _resetToken = "";
         public ForgotPasswordForm()
         {
             InitializeComponent();
+        }
+        private void ForgotPasswordForm_Load(object sender,EventArgs e)
+        {
+            lblOTP.Visible = false;
+            txtOTP.Visible = false;
+            btnVerifyOTP.Visible = false;
         }
 
         private async void btnSendOtp_Click(
@@ -34,18 +42,14 @@ namespace Client.Layout
 
             try
             {
-                await _auth.ForgotPasswordAsync(
-                    email);
+                await _auth.ForgotPasswordAsync(email);
 
                 MessageBox.Show(
                     "OTP đã được gửi");
 
-                VerifyOtpForm frm =
-                    new VerifyOtpForm();
-
-                frm.Show();
-
-                this.Hide();
+                lblOTP.Visible = true;
+                txtOTP.Visible = true;
+                btnVerifyOTP.Visible = true;
             }
             catch (Exception ex)
             {
@@ -54,9 +58,40 @@ namespace Client.Layout
             }
         }
 
-        private void ForgotPasswordForm_Load(object sender, EventArgs e)
-        {
+        private async void btnVerifyOTP_Click(
+    object sender,
+    EventArgs e)
+{
+    try
+    {
+        string email =
+            txtEmail.Text.Trim();
 
-        }
+        string otp =
+            txtOTP.Text.Trim();
+
+        var result = await _auth.VerifyOtpAsync(email,otp);
+
+                _resetToken =
+                    result.ResetToken;
+
+                MessageBox.Show(
+                    "OTP hợp lệ");
+
+                ResetPasswordForm frm =
+                    new ResetPasswordForm(
+                        _resetToken);
+
+                frm.Show();
+
+                this.Hide();
+            }
+    catch (Exception ex)
+    {
+        MessageBox.Show(
+            ex.Message);
+    }
+}
+
     }
 }

@@ -10,9 +10,13 @@ namespace Client.Layout
 {
     public partial class ResetPasswordForm : Form
     {
-        public ResetPasswordForm()
+        private readonly string _resetToken;
+
+        public ResetPasswordForm(string resetToken)
         {
             InitializeComponent();
+
+            _resetToken = resetToken;
         }
 
         private void btnResetPassword_Click(object sender, EventArgs e)

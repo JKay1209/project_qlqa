@@ -49,6 +49,7 @@
             // 
             panelLogin.BackColor = Color.FromArgb(150, 255, 255, 255);
             panelLogin.Controls.Add(btnOpenRegister);
+            panelLogin.Controls.Add(lblSubTitle);
             panelLogin.Controls.Add(linkForgot);
             panelLogin.Controls.Add(btnLogin);
             panelLogin.Controls.Add(chkRemember);
@@ -56,13 +57,12 @@
             panelLogin.Controls.Add(lblPass);
             panelLogin.Controls.Add(txtUser);
             panelLogin.Controls.Add(lblUser);
-            panelLogin.Controls.Add(lblSubTitle);
             panelLogin.Controls.Add(lblTitle);
             panelLogin.Controls.Add(picLogo);
             panelLogin.Font = new Font("Segoe UI", 15.75F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            panelLogin.Location = new Point(365, 107);
+            panelLogin.Location = new Point(278, 90);
             panelLogin.Name = "panelLogin";
-            panelLogin.Size = new Size(314, 410);
+            panelLogin.Size = new Size(241, 359);
             panelLogin.TabIndex = 0;
             panelLogin.Paint += panel1_Paint;
             // 
@@ -82,10 +82,10 @@
             // linkForgot
             // 
             linkForgot.AutoSize = true;
-            linkForgot.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            linkForgot.Location = new Point(97, 338);
+            linkForgot.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 163);
+            linkForgot.Location = new Point(61, 313);
             linkForgot.Name = "linkForgot";
-            linkForgot.Size = new Size(124, 21);
+            linkForgot.Size = new Size(102, 17);
             linkForgot.TabIndex = 10;
             linkForgot.TabStop = true;
             linkForgot.Text = "Quên mật khẩu?";
@@ -96,9 +96,9 @@
             btnLogin.BackColor = SystemColors.HotTrack;
             btnLogin.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 163);
             btnLogin.ForeColor = SystemColors.ButtonHighlight;
-            btnLogin.Location = new Point(23, 286);
+            btnLogin.Location = new Point(22, 270);
             btnLogin.Name = "btnLogin";
-            btnLogin.Size = new Size(270, 40);
+            btnLogin.Size = new Size(194, 40);
             btnLogin.TabIndex = 9;
             btnLogin.Text = "Đăng nhập";
             btnLogin.UseVisualStyleBackColor = false;
@@ -108,7 +108,7 @@
             chkRemember.AutoSize = true;
             chkRemember.Font = new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 163);
             chkRemember.ForeColor = SystemColors.GrayText;
-            chkRemember.Location = new Point(23, 250);
+            chkRemember.Location = new Point(22, 247);
             chkRemember.Name = "chkRemember";
             chkRemember.Size = new Size(85, 17);
             chkRemember.TabIndex = 8;
@@ -118,9 +118,9 @@
             // txtPass
             // 
             txtPass.Font = new Font("Segoe UI", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            txtPass.Location = new Point(23, 217);
+            txtPass.Location = new Point(22, 214);
             txtPass.Name = "txtPass";
-            txtPass.Size = new Size(270, 27);
+            txtPass.Size = new Size(193, 27);
             txtPass.TabIndex = 7;
             txtPass.UseSystemPasswordChar = true;
             // 
@@ -128,7 +128,7 @@
             // 
             lblPass.AutoSize = true;
             lblPass.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            lblPass.Location = new Point(23, 199);
+            lblPass.Location = new Point(22, 196);
             lblPass.Name = "lblPass";
             lblPass.Size = new Size(57, 15);
             lblPass.TabIndex = 6;
@@ -137,9 +137,9 @@
             // txtUser
             // 
             txtUser.Font = new Font("Segoe UI", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            txtUser.Location = new Point(23, 155);
+            txtUser.Location = new Point(22, 154);
             txtUser.Name = "txtUser";
-            txtUser.Size = new Size(270, 27);
+            txtUser.Size = new Size(194, 27);
             txtUser.TabIndex = 4;
             txtUser.TextChanged += textBox1_TextChanged;
             // 
@@ -147,7 +147,7 @@
             // 
             lblUser.AutoSize = true;
             lblUser.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 163);
-            lblUser.Location = new Point(23, 137);
+            lblUser.Location = new Point(21, 136);
             lblUser.Name = "lblUser";
             lblUser.Size = new Size(58, 15);
             lblUser.TabIndex = 3;
@@ -156,11 +156,11 @@
             // lblSubTitle
             // 
             lblSubTitle.AutoSize = true;
-            lblSubTitle.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 163);
+            lblSubTitle.Font = new Font("Segoe UI", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 163);
             lblSubTitle.ForeColor = SystemColors.GrayText;
-            lblSubTitle.Location = new Point(80, 111);
+            lblSubTitle.Location = new Point(52, 109);
             lblSubTitle.Name = "lblSubTitle";
-            lblSubTitle.Size = new Size(137, 15);
+            lblSubTitle.Size = new Size(133, 13);
             lblSubTitle.TabIndex = 2;
             lblSubTitle.Text = "Chào mừng bạn quay lại";
             lblSubTitle.Click += lblSubTitle_Click;
@@ -168,10 +168,10 @@
             // lblTitle
             // 
             lblTitle.AutoSize = true;
-            lblTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 163);
-            lblTitle.Location = new Point(23, 90);
+            lblTitle.Font = new Font("Segoe UI", 11.25F, FontStyle.Bold, GraphicsUnit.Point, 163);
+            lblTitle.Location = new Point(0, 89);
             lblTitle.Name = "lblTitle";
-            lblTitle.Size = new Size(266, 21);
+            lblTitle.Size = new Size(241, 20);
             lblTitle.TabIndex = 1;
             lblTitle.Text = "Đăng nhập vào tài khoản của bạn";
             lblTitle.Click += lblTitle_Click;
@@ -181,7 +181,7 @@
             picLogo.BackColor = Color.Transparent;
             picLogo.Image = (Image)resources.GetObject("picLogo.Image");
             picLogo.InitialImage = null;
-            picLogo.Location = new Point(80, 3);
+            picLogo.Location = new Point(44, 0);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(141, 97);
             picLogo.SizeMode = PictureBoxSizeMode.Zoom;
@@ -194,7 +194,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
             BackgroundImageLayout = ImageLayout.Stretch;
-            ClientSize = new Size(1050, 570);
+            ClientSize = new Size(804, 461);
             Controls.Add(panelLogin);
             Margin = new Padding(3, 2, 3, 2);
             MinimumSize = new Size(667, 460);

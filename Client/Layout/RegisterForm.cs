@@ -10,7 +10,6 @@ using System.Text;
 using System.Windows.Forms;
 using Client.Services;
 using Shared.DTOs.Auth;
-using Shared.Enums;
 
 namespace Client.Layout
 {

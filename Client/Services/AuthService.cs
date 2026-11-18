@@ -29,22 +29,25 @@ namespace Client.Services
                 new ForgotPasswordRequest(email));
         }
 
-        public async Task<VerifyOtpResponse> VerifyOtpAsync(
-            string email,
-            string otp,
-            CancellationToken ct = default)
+        public async Task<VerifyOtpResponse> VerifyOtpAsync(string email,string otp,CancellationToken ct = default)
         {
-            await Task.CompletedTask;
-
-            return new VerifyOtpResponse("");
+            return await PostAsync<VerifyOtpResponse>(
+                "api/auth/verify-otp",
+                new VerifyOtpRequest(email, otp),
+                ct);
         }
 
         public async Task ResetPasswordAsync(
-            string resetToken,
-            string newPassword,
-            CancellationToken ct = default)
+    string resetToken,
+    string newPassword,
+    CancellationToken ct = default)
         {
-            await Task.CompletedTask;
+            await PostAsync<MessageResponse>(
+                "api/auth/reset-password",
+                new ResetPasswordRequest(
+                    resetToken,
+                    newPassword),
+                ct);
         }
     }
 }
