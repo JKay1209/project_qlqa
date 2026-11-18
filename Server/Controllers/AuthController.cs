@@ -51,35 +51,20 @@ public class AuthController(AuthService auth) : ControllerBase
     [HttpPost("register")]
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        // Chỉ Admin đã xác thực mới được tạo tài khoản với vai trò tùy chọn.
-        bool isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole(nameof(UserRole.Admin));
-
-        // Người đăng ký công khai luôn được cấp quyền Waiter.
-        var safeRequest = request with
-        {
-            Role = isAdmin ? request.Role : UserRole.Waiter
-        };
-
-        string? error = ValidateRegister(safeRequest);
+        string? error = ValidateRegister(request);
 
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
 
-        var (user, code) = await auth.RegisterAsync(safeRequest, ct);
+        var (user, code) = await auth.RegisterAsync(request, ct);
 
         return code switch
         {
-            ErrorCode.None =>
-                StatusCode(StatusCodes.Status201Created, user),
+            ErrorCode.None => StatusCode(StatusCodes.Status201Created, user),
 
-            ErrorCode.Conflict =>
-                Conflict(new ErrorResponse(
-                    "Tên tài khoản hoặc email đã tồn tại.")),
+            ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản hoặc email đã tồn tại.")),
 
-            _ =>
-                StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new ErrorResponse("Không thể tạo tài khoản."))
+            _ => StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse("Không thể tạo tài khoản."))
         };
     }
 
