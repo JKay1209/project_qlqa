@@ -75,12 +75,9 @@ namespace Client.Layout
         {
             try
             {
-                MessageBox.Show("B1");
                 string email = txtEmail.Text.Trim();
                 string otp = txtOTP.Text.Trim();
-                MessageBox.Show("B2");
                 var result = await _auth.VerifyOtpAsync(email, otp);
-                MessageBox.Show("B3");
                 _resetToken =
                     result.ResetToken;
 
