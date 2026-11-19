@@ -44,17 +44,19 @@ public class AuthLogic
         }
     }
 
-
     // ============================ Register ==================
-    // Điều phối: kiểm tra quyền phía Client, gọi service, thông báo.
+    // Người chưa đăng nhập được đăng ký công khai.
+    // Người đăng ký công khai chỉ được cấp vai trò Waiter.
+    // Admin đã đăng nhập có thể tạo tài khoản với vai trò được chọn.
     public async Task<(bool Ok, string? Error)> RegisterAsync(
         string username, string password, string displayName, UserRole role,
         string? email = null, CancellationToken ct = default)
     {
-
         try
         {
-            await _auth.RegisterAsync(new RegisterRequest(username, password, displayName, role, email), ct);
+            await _auth.RegisterAsync(
+                new RegisterRequest(username, password, displayName, role, email), ct);
+
             return (true, null);
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
@@ -63,9 +65,9 @@ public class AuthLogic
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
-            return (false, "Bạn không có quyền tạo tài khoản.");
+            return (false, "Bạn không có quyền thực hiện thao tác này.");
         }
-        catch (ApiException ex)   // 400, 409 (trùng tên)... Server đã gửi sẵn thông báo
+        catch (ApiException ex)
         {
             return (false, ex.Message);
         }
@@ -82,6 +84,7 @@ public class AuthLogic
             return (false, "Đã hủy.");
         }
     }
+
 
 
     // ======================== Forgot password ===========================
@@ -127,9 +130,22 @@ public class AuthLogic
     }
 
 
-    public void Logout()
+    // ============================== logout =================================
+    public async Task LogoutAsync()
     {
-        TokenManager.Clear();
-        SessionManager.End();
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await _auth.LogoutAsync(cts.Token);
+        }
+        catch
+        {
+            // Server tắt, mất mạng hoặc token đã hết hạn: vẫn đăng xuất cục bộ bình thường
+        }
+        finally
+        {
+            TokenManager.Clear();
+            SessionManager.End();
+        }
     }
 }

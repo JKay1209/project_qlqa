@@ -25,6 +25,8 @@ builder.Services.AddScoped<EmployeeRepository>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.AddSingleton<EmailService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<TokenBlacklist>();
 
 // Chuẩn bị cho real-time (chưa dùng)
 builder.Services.AddSignalR();

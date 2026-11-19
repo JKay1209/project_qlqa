@@ -11,6 +11,5 @@ public enum UserRole
     Cashier = 3,
     Kitchen = 4,
     Waiter = 5,
-
     Customer = 6,
 }

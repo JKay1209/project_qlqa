@@ -1,6 +1,9 @@
 ﻿using Client.LayoutLogics;
+using Client.Security;
+using Client.Services;
 using project_qlqa;
 using Shared.Enums;
+using Shared.DTOs.Auth;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,8 +11,8 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
-using Client.Services;
-using Shared.DTOs.Auth;
+
+
 
 namespace Client.Layout
 {
@@ -39,19 +42,21 @@ namespace Client.Layout
             InitializeComponent();
 
             var roles = new List<RoleItem>
-    {
-        new("Admin (Quản trị viên)", UserRole.Admin),
-        new("Quản lý",               UserRole.Manager),
-        new("Thu ngân",              UserRole.Cashier),
-        new("Bếp",                   UserRole.Kitchen),
-        new("Phục vụ",               UserRole.Waiter),
-        new("Khách hàng",            UserRole.Customer),
-    };
+            {
+                new("Admin (Quản trị viên)", UserRole.Admin),
+                new("Quản lý",               UserRole.Manager),
+                new("Thu ngân",              UserRole.Cashier),
+                new("Bếp",                   UserRole.Kitchen),
+                new("Phục vụ",               UserRole.Waiter),
+                new("Khách hàng",            UserRole.Customer),
+            };
 
-            cmbRole.DisplayMember = nameof(RoleItem.Text);    // chữ hiển thị
-            cmbRole.ValueMember = nameof(RoleItem.Value);   // giá trị thật
+            cmbRole.DisplayMember = nameof(RoleItem.Text);
+            cmbRole.ValueMember = nameof(RoleItem.Value);
             cmbRole.DataSource = roles;
-            cmbRole.SelectedIndex = roles.FindIndex(r => r.Value == UserRole.Waiter);  // mặc định: Phục vụ
+
+            // Không cần hiển thị lựa chọn vai trò cho người đăng ký công khai.
+            cmbRole.Visible = true;
         }
 
         private void lblTitle_Click(object sender, EventArgs e)
@@ -113,8 +118,6 @@ namespace Client.Layout
         private void lnkLogin_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             main loginForm = new main();
-
-            loginForm.Show();
 
             this.Close();
         }

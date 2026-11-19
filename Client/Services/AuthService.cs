@@ -6,6 +6,7 @@ namespace Client.Services
 {
     internal class AuthService : ApiService
     {
+        // ============================== Login =================================
         public async Task<LoginResponse> LoginAsync(
             string username,
             string password,
@@ -16,19 +17,23 @@ namespace Client.Services
             return await PostAsync<LoginResponse>("api/auth/login", request, ct);
         }
 
-        public Task<UserDto> RegisterAsync(
-            RegisterRequest request,
+
+        // ============================== Register =================================
+        public Task<UserDto> RegisterAsync(RegisterRequest request,
             CancellationToken ct = default)
             => PostAsync<UserDto>("api/auth/register", request, ct);
 
 
-        public async Task ForgotPasswordAsync(string email,CancellationToken ct = default)
-        {
-            await PostAsync(
+        // ============================== Forgot password =================================
+        // Bước 1: Gửi email yêu cầu OTP
+        public Task<MessageResponse> ForgotPasswordAsync(
+            string email,
+            CancellationToken ct = default)
+            => PostAsync<MessageResponse>(
                 "api/auth/forgot-password",
-                new ForgotPasswordRequest(email));
-        }
+                new ForgotPasswordRequest(email), ct);
 
+        // Bước 2: Gửi email + OTP để xác thực
         public async Task<VerifyOtpResponse> VerifyOtpAsync(string email,string otp,CancellationToken ct = default)
         {
             return await PostAsync<VerifyOtpResponse>(
@@ -37,10 +42,8 @@ namespace Client.Services
                 ct);
         }
 
-        public async Task ResetPasswordAsync(
-    string resetToken,
-    string newPassword,
-    CancellationToken ct = default)
+        // Bước 3: Gửi Reset Token + mật khẩu mới
+        public async Task ResetPasswordAsync(string resetToken, string newPassword, CancellationToken ct = default)
         {
             await PostAsync<MessageResponse>(
                 "api/auth/reset-password",
@@ -49,5 +52,9 @@ namespace Client.Services
                     newPassword),
                 ct);
         }
+
+        // ============================== Logout =================================
+        public Task<MessageResponse> LogoutAsync(CancellationToken ct = default)
+            => PostAsync<MessageResponse>("api/auth/logout", new { }, ct);
     }
 }

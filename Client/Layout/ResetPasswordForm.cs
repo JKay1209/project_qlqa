@@ -16,9 +16,7 @@ namespace Client.Layout
             _resetToken = resetToken;
         }
 
-        private async void btnResetPassword_Click(
-            object sender,
-            EventArgs e)
+        private async void btnResetPassword_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtNewPassword.Text))
             {
@@ -57,7 +55,6 @@ namespace Client.Layout
             object sender,
             EventArgs e)
         {
-
         }
     }
 }

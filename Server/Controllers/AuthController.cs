@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Server.Security;
 using Server.Services;
 using Shared.DTOs.Auth;
 using Shared.Enums;
@@ -44,18 +46,13 @@ public class AuthController(AuthService auth) : ControllerBase
 
     // ================== Register =========================
     // POST /api/auth/register
-    // Cho phép người dùng mới đăng ký tài khoản
+    // Cho phép người dùng chưa đăng nhập đăng ký tài khoản.
     [AllowAnonymous]
     [HttpPost("register")]
-
     public async Task<ActionResult<UserDto>> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        // Không cho người lạ tự đăng ký vai trò Admin
-        if (request.Role == UserRole.Admin && !User.IsInRole(nameof(UserRole.Admin)))
-            return StatusCode(StatusCodes.Status403Forbidden,
-                new ErrorResponse("Không được tạo tài khoản quản trị."));
-
         string? error = ValidateRegister(request);
+
         if (error is not null)
             return BadRequest(new ErrorResponse(error));
 
@@ -64,17 +61,19 @@ public class AuthController(AuthService auth) : ControllerBase
         return code switch
         {
             ErrorCode.None => StatusCode(StatusCodes.Status201Created, user),
+
             ErrorCode.Conflict => Conflict(new ErrorResponse("Tên tài khoản hoặc email đã tồn tại.")),
-            _ => StatusCode(StatusCodes.Status500InternalServerError,
-                            new ErrorResponse("Không thể tạo tài khoản."))
+
+            _ => StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse("Không thể tạo tài khoản."))
         };
     }
 
     // Kiểm tra dữ liệu đầu vào. Trả về thông báo lỗi.
     private static string? ValidateRegister(RegisterRequest r)
     {
-        if (string.IsNullOrWhiteSpace(r.Username) || string.IsNullOrWhiteSpace(r.DisplayName)
-            || string.IsNullOrEmpty(r.Password))
+        if (string.IsNullOrWhiteSpace(r.Username) || 
+            string.IsNullOrWhiteSpace(r.DisplayName) || 
+            string.IsNullOrEmpty(r.Password))
             return "Vui lòng nhập đầy đủ thông tin.";
 
         string username = r.Username.Trim();
@@ -159,8 +158,8 @@ public class AuthController(AuthService auth) : ControllerBase
         if (string.IsNullOrWhiteSpace(request.ResetToken) || request.ResetToken.Length > 100)
             return BadRequest(new ErrorResponse("Dữ liệu không hợp lệ."));
 
-        if (string.IsNullOrEmpty(request.NewPassword) || request.NewPassword.Length < 8 || request.NewPassword.Length > 128)
-            return BadRequest(new ErrorResponse("Mật khẩu phải từ 8 đến 128 ký tự."));
+        if (!IsStrongPassword(request.NewPassword, out string? passwordError))
+            return BadRequest(new ErrorResponse(passwordError!));
 
         bool ok = await auth.ResetPasswordAsync(request.ResetToken, request.NewPassword, ct);
         return ok
@@ -173,5 +172,19 @@ public class AuthController(AuthService auth) : ControllerBase
         => !string.IsNullOrWhiteSpace(email) && email.Length <= 100 && System.Net.Mail.MailAddress.TryCreate(email, out _);
 
 
-    // TODO: POST /api/auth/logout, POST /api/auth/refresh (làm sau)
+    // ============================== Logout =================================
+    // POST /api/auth/logout
+    [Authorize]
+    [HttpPost("logout")]
+    public ActionResult<MessageResponse> Logout([FromServices] TokenBlacklist blacklist)
+    {
+        string header = Request.Headers.Authorization.ToString();
+        if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var jwt = new JsonWebTokenHandler().ReadJsonWebToken(header["Bearer ".Length..]);
+            if (!string.IsNullOrEmpty(jwt.Id))
+                blacklist.Revoke(jwt.Id, jwt.ValidTo);
+        }
+        return Ok(new MessageResponse("Đã đăng xuất."));
+    }
 }

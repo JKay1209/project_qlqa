@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Client.Services;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Net.Mail;
 using System.Text;
 using System.Windows.Forms;
-using Client.Services;
 
 namespace Client.Layout
 {
@@ -18,25 +19,27 @@ namespace Client.Layout
         {
             InitializeComponent();
         }
-        private void ForgotPasswordForm_Load(object sender,EventArgs e)
+        private void ForgotPasswordForm_Load(object sender, EventArgs e)
         {
             lblOTP.Visible = false;
             txtOTP.Visible = false;
             btnVerifyOTP.Visible = false;
         }
 
-        private async void btnSendOtp_Click(
-    object sender,
-    EventArgs e)
+        private async void btnSendOtp_Click(object sender, EventArgs e)
         {
-            string email =
-                txtEmail.Text.Trim();
+            string email = txtEmail.Text.Trim();
 
+            // Kiểm tra email
             if (string.IsNullOrWhiteSpace(email))
             {
-                MessageBox.Show(
-                    "Vui lòng nhập email");
+                MessageBox.Show("Vui lòng nhập email.", "Thông báo", MessageBoxButtons.OK);
+                return;
+            }
 
+            if (!MailAddress.TryCreate(email, out _))
+            {
+                MessageBox.Show("Email không đúng định dạng.", "Thông báo", MessageBoxButtons.OK);
                 return;
             }
 
@@ -45,7 +48,10 @@ namespace Client.Layout
                 await _auth.ForgotPasswordAsync(email);
 
                 MessageBox.Show(
-                    "OTP đã được gửi");
+                    "Nếu email thuộc một tài khoản hợp lệ, mã OTP sẽ được gửi đến email đó.",
+                    "Thông báo",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
 
                 lblOTP.Visible = true;
                 txtOTP.Visible = true;
@@ -54,22 +60,27 @@ namespace Client.Layout
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    ex.Message);
+                    ex.Message,
+                    "Không thể gửi yêu cầu",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnSendOTP.Enabled = true;
             }
         }
 
-        private async void btnVerifyOTP_Click(
-    object sender,
-    EventArgs e)
-{
-    try
-    {
-        MessageBox.Show("B1");
-        string email = txtEmail.Text.Trim();
-        string otp = txtOTP.Text.Trim();
-        MessageBox.Show("B2");
-        var result = await _auth.VerifyOtpAsync(email,otp);
-        MessageBox.Show("B3");
+        private async void btnVerifyOTP_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                MessageBox.Show("B1");
+                string email = txtEmail.Text.Trim();
+                string otp = txtOTP.Text.Trim();
+                MessageBox.Show("B2");
+                var result = await _auth.VerifyOtpAsync(email, otp);
+                MessageBox.Show("B3");
                 _resetToken =
                     result.ResetToken;
 
@@ -84,12 +95,10 @@ namespace Client.Layout
 
                 this.Hide();
             }
-    catch (Exception ex)
-    {
-        MessageBox.Show(
-            ex.Message);
-    }
-}
-
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
     }
 }

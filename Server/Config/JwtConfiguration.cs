@@ -1,6 +1,8 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Server.Security;
+using System.Text;
 
 namespace Server.Config;
 
@@ -18,6 +20,17 @@ public static class JwtConfig
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opt =>
             {
+                opt.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = ctx =>
+                    {
+                        var blacklist = ctx.HttpContext.RequestServices.GetRequiredService<TokenBlacklist>();
+                        if (ctx.SecurityToken is JsonWebToken jwt && blacklist.IsRevoked(jwt.Id))
+                            ctx.Fail("Token đã bị thu hồi.");
+                        return Task.CompletedTask;
+                    }
+                };
+
                 opt.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
