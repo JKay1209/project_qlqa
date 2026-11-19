@@ -124,8 +124,6 @@ namespace Client.Layout
         {
             main loginForm = new main();
 
-            loginForm.Show();
-
             this.Close();
         }
 

@@ -71,8 +71,9 @@ public class AuthController(AuthService auth) : ControllerBase
     // Kiểm tra dữ liệu đầu vào. Trả về thông báo lỗi.
     private static string? ValidateRegister(RegisterRequest r)
     {
-        if (string.IsNullOrWhiteSpace(r.Username) || string.IsNullOrWhiteSpace(r.DisplayName)
-            || string.IsNullOrEmpty(r.Password))
+        if (string.IsNullOrWhiteSpace(r.Username) || 
+            string.IsNullOrWhiteSpace(r.DisplayName) || 
+            string.IsNullOrEmpty(r.Password))
             return "Vui lòng nhập đầy đủ thông tin.";
 
         string username = r.Username.Trim();
