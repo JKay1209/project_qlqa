@@ -85,14 +85,17 @@ public sealed class RestaurantBackend(
         }
         order.Status = OrderStatus.SentToKitchen;
 
+        DateTime sentAt = DateTime.UtcNow;
         var added = request.Items.Select(i => new OrderDetail
         {
             MenuItemId = i.MenuItemId,
             Quantity = i.Quantity,
             UnitPrice = menu[i.MenuItemId].Price,
             Note = string.IsNullOrWhiteSpace(i.Note) ? null : i.Note.Trim(),
-            Status = ItemStatus.Pending
+            Status = ItemStatus.Pending,
+            SentAt = sentAt
         }).ToList();
+
         foreach (var detail in added) order.OrderDetails.Add(detail);
 
         TableChangedEvent? tableChange = null;
@@ -135,7 +138,9 @@ public sealed class RestaurantBackend(
                 : OrderStatus.Served;
 
         await db.SaveChangesAsync(ct);
-        return new ItemChanged(change);
+        return new ItemChanged(change with { 
+            DetailIds = targets.Select(d => d.OrderDetailId).ToList() 
+        });
     }
 
     // ============================ Bàn ============================
@@ -182,5 +187,6 @@ public sealed class RestaurantBackend(
     }
 
     private static OrderItemDto ToDto(OrderDetail d, string name)
-        => new(d.MenuItemId, name, d.Quantity, d.UnitPrice, d.Status, d.Note);
+        => new(d.MenuItemId, name, d.Quantity, d.UnitPrice, d.Status, d.Note,
+               d.OrderDetailId, DateTime.SpecifyKind(d.SentAt, DateTimeKind.Utc));
 }

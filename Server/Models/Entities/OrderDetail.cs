@@ -11,7 +11,7 @@ public class OrderDetail
     public decimal UnitPrice { get; set; }          // giá tại thời điểm gọi món
     public ItemStatus Status { get; set; } = ItemStatus.Pending;
     public string? Note { get; set; }
-
+    public DateTime SentAt { get; set; } = DateTime.UtcNow;   // lúc dòng món được gửi bếp
     public Order Order { get; set; } = null!;
     public MenuItem MenuItem { get; set; } = null!;
 }
