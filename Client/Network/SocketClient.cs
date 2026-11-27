@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
+using Shared.Protocol;
 
 namespace Client.Network;
 
@@ -28,10 +29,16 @@ internal sealed class SocketClientOptions
     public int KeepAliveTimeSeconds { get; set; } = 5;
     public int KeepAliveIntervalSeconds { get; set; } = 2;
     public int KeepAliveRetryCount { get; set; } = 3;
+
+    // Heartbeat (Task 19): PongTimeout phải > PingInterval.
+    // Server ngắt client im lặng sau SocketServer:IdleTimeoutSeconds (15s) nên PingInterval phải nhỏ hơn nhiều.
+    public TimeSpan PingInterval { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan PongTimeout { get; set; } = TimeSpan.FromSeconds(15);
 }
 
 // TCP client: Socket -> Connect -> nhận/gửi theo dòng ("...\n").
 // Mất kết nối (Server tắt, rút mạng, timeout) thì tự kết nối lại với backoff.
+// Heartbeat: gửi PING định kỳ; Server im lặng quá PongTimeout thì ngắt và nối lại.
 //
 // LƯU Ý: StateChanged và MessageReceived được gọi từ luồng nền.
 // Khi cập nhật giao diện phải dùng Control.BeginInvoke.
@@ -48,13 +55,34 @@ internal sealed class SocketClient : IAsyncDisposable
     private Socket? _socket;
     private int _state = (int)ConnectionState.Disconnected;
 
-    public SocketClient(SocketClientOptions options) => _opt = options;
+    // ---- Heartbeat ----
+    private long _lastReceiveTs;                  // Stopwatch timestamp: lần cuối nhận BẤT KỲ byte nào từ Server
+    private long _pingSentTs;                     // Stopwatch timestamp: lần gửi PING gần nhất (0 = chưa gửi)
+    private long _latencyTicks = -1;              // RTT PING -> PONG (-1 = chưa đo)
+    private volatile string? _heartbeatError;     // lý do heartbeat chủ động ngắt kết nối
+
+    public SocketClient(SocketClientOptions options)
+    {
+        if (options.PongTimeout <= options.PingInterval)
+            throw new ArgumentException("PongTimeout phải lớn hơn PingInterval.", nameof(options));
+        _opt = options;
+    }
 
     public event Action<ConnectionState>? StateChanged;
     public event Action<string>? MessageReceived;
 
     public ConnectionState State => (ConnectionState)Volatile.Read(ref _state);
     public string? LastError { get; private set; }
+
+    // Độ trễ khứ hồi gần nhất tới Server (null nếu chưa đo / đang mất kết nối).
+    public TimeSpan? Latency
+    {
+        get
+        {
+            long t = Interlocked.Read(ref _latencyTicks);
+            return t < 0 ? null : TimeSpan.FromTicks(t);
+        }
+    }
 
     // ===================== Vòng đời =====================
     public void Start()
@@ -166,11 +194,25 @@ internal sealed class SocketClient : IAsyncDisposable
 
                 Volatile.Write(ref _socket, socket);
                 connectedAt = Stopwatch.GetTimestamp();
+                Interlocked.Exchange(ref _lastReceiveTs, connectedAt);   // đồng hồ "im lặng" tính từ lúc nối
+                Interlocked.Exchange(ref _pingSentTs, 0);
+                Interlocked.Exchange(ref _latencyTicks, -1);
+                _heartbeatError = null;
                 LastError = null;
                 SetState(ConnectionState.Connected);
 
-                await ReceiveLoopAsync(socket, ct);
-                LastError = "Server đã đóng kết nối.";
+                using var hbCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                Task heartbeat = HeartbeatLoopAsync(hbCts.Token);
+                try
+                {
+                    await ReceiveLoopAsync(socket, ct);
+                }
+                finally
+                {
+                    hbCts.Cancel();      // kết nối này kết thúc -> dừng heartbeat của nó
+                    await heartbeat;     // HeartbeatLoopAsync không ném exception ra ngoài
+                }
+                LastError = _heartbeatError ?? "Server đã đóng kết nối.";
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -180,12 +222,15 @@ internal sealed class SocketClient : IAsyncDisposable
                                           or IOException or InvalidDataException
                                           or OperationCanceledException)
             {
-                LastError = ex is OperationCanceledException ? "Hết thời gian kết nối." : ex.Message;
+                // Nếu chính heartbeat ngắt kết nối thì giữ lý do "Server không phản hồi" thay vì lỗi socket chung chung
+                LastError = _heartbeatError
+                    ?? (ex is OperationCanceledException ? "Hết thời gian kết nối." : ex.Message);
                 Debug.WriteLine($"[SocketClient] {LastError}");
             }
             finally
             {
                 Volatile.Write(ref _socket, null);
+                Interlocked.Exchange(ref _latencyTicks, -1);
                 socket?.Dispose();
 
                 // Chỉ đặt lại backoff khi kết nối đã sống đủ lâu. Bị Server từ chối (đủ chỗ) thì
@@ -204,6 +249,49 @@ internal sealed class SocketClient : IAsyncDisposable
         SetState(ConnectionState.Disconnected);
     }
 
+    // ===================== Heartbeat (Task 19) =====================
+    // Tick mỗi giây:
+    //   (1) Server im lặng quá PongTimeout  -> ngắt socket để RunAsync nối lại (bắt được Server treo mềm,
+    //       trường hợp SO_KEEPALIVE của HĐH không thấy vì HĐH vẫn ACK);
+    //   (2) đủ PingInterval                 -> gửi PING để Server biết Client còn sống.
+    private async Task HeartbeatLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            long lastPing = Stopwatch.GetTimestamp();
+
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (Stopwatch.GetElapsedTime(Interlocked.Read(ref _lastReceiveTs)) > _opt.PongTimeout)
+                {
+                    _heartbeatError = $"Server không phản hồi trong {_opt.PongTimeout.TotalSeconds:0}s.";
+                    Debug.WriteLine($"[SocketClient] {_heartbeatError}");
+                    DropConnection();    // ReceiveLoop văng exception -> RunAsync reconnect
+                    return;
+                }
+
+                if (Stopwatch.GetElapsedTime(lastPing) >= _opt.PingInterval)
+                {
+                    lastPing = Stopwatch.GetTimestamp();
+                    Interlocked.Exchange(ref _pingSentTs, lastPing);
+                    await SendLineAsync(Protocol.Ping, ct);   // gửi lỗi -> SendLineAsync tự DropConnection
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // kết nối đã kết thúc
+        }
+    }
+
+    private void OnPong()
+    {
+        long sent = Interlocked.Read(ref _pingSentTs);
+        if (sent != 0)
+            Interlocked.Exchange(ref _latencyTicks, Stopwatch.GetElapsedTime(sent).Ticks);
+    }
+
     // Nhận byte -> ghép thành dòng (TCP là luồng byte, 1 lần đọc có thể nửa dòng hoặc nhiều dòng).
     private async Task ReceiveLoopAsync(Socket socket, CancellationToken ct)
     {
@@ -217,13 +305,19 @@ internal sealed class SocketClient : IAsyncDisposable
             int received = await socket.ReceiveAsync(buffer.AsMemory(), SocketFlags.None, ct);
             if (received == 0) return;   // Server đóng kết nối
 
+            // Bất kỳ dữ liệu nào từ Server (PONG, ORDER_NEW...) đều chứng tỏ Server còn sống
+            Interlocked.Exchange(ref _lastReceiveTs, Stopwatch.GetTimestamp());
+
             int count = decoder.GetChars(buffer, 0, received, chars, 0);
             for (int i = 0; i < count; i++)
             {
                 if (chars[i] == '\n')
                 {
-                    RaiseMessage(line.ToString().TrimEnd('\r'));
+                    string text = line.ToString().TrimEnd('\r');
                     line.Clear();
+
+                    if (text == Protocol.Pong) OnPong();   // heartbeat nội bộ, không phát lên tầng trên
+                    else RaiseMessage(text);
                 }
                 else
                 {

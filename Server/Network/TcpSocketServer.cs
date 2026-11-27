@@ -20,6 +20,8 @@ namespace Server.Network;
 //    Chỉ luồng này đụng vào socket và danh sách client.
 //  - Việc chậm (kiểm tra JWT, CSDL) được đẩy sang một worker qua hàng đợi, vòng select không bị chặn.
 //  - Worker trả kết quả về hàng đợi _outgoing rồi đánh thức vòng select để gửi đi.
+//  - Heartbeat (Task 19): Client gửi PING định kỳ, Server trả PONG ngay; client im lặng quá
+//    IdleTimeoutSeconds bị coi là zombie và bị ngắt ở SweepIdleSessions().
 public class TcpSocketServer(
     ILogger<TcpSocketServer> logger,
     IOptions<SocketServerOptions> options,
@@ -39,6 +41,7 @@ public class TcpSocketServer(
     private ConnectionLimiter _limiter = null!;             // tạo sau khi cấu hình đã được kiểm tra
     private long _rejected;
     private long _lastRejectLogTicks;
+    private long _nextSweepTicks;                           // lần quét zombie kế tiếp (Environment.TickCount64)
     private Socket? _wakeSocket;
     private EndPoint? _wakeEndPoint;
 
@@ -79,6 +82,8 @@ public class TcpSocketServer(
         registry.MarkListening(_opt.Port);
         logger.LogInformation("Socket server (select) đang lắng nghe ở cổng {Port} (backlog {Backlog})",
             _opt.Port, _opt.Backlog);
+        if (_opt.IdleTimeoutSeconds > 0)
+            logger.LogInformation("Heartbeat: ngắt client im lặng quá {Seconds}s.", _opt.IdleTimeoutSeconds);
 
         Task worker = Task.Run(() => WorkerAsync(stoppingToken), CancellationToken.None);
         using var stopRegistration = stoppingToken.Register(Wake);
@@ -109,6 +114,7 @@ public class TcpSocketServer(
         while (!ct.IsCancellationRequested)
         {
             DeliverOutgoing();
+            SweepIdleSessions();                            // Task 19: dọn zombie
 
             foreach (var s in _sessions.Values.Where(s => s.IsDisconnectRequested).ToList())
                 Close(s, "bị ngắt chủ động");
@@ -141,6 +147,25 @@ public class TcpSocketServer(
                 if (_sessions.TryGetValue(socket, out var session))
                     Guard(session, session.Flush);
         }
+    }
+
+    // ============================ Heartbeat (Task 19) ============================
+    // Ngắt client không gửi byte nào (kể cả PING) quá IdleTimeoutSeconds.
+    // Bắt được cả trường hợp rút mạng / treo máy mà TCP chưa kịp báo.
+    // Chạy trên luồng select (luồng duy nhất được đụng vào _sessions) nên không cần khóa.
+    private void SweepIdleSessions()
+    {
+        if (_opt.IdleTimeoutSeconds <= 0) return;
+
+        long now = Environment.TickCount64;
+        if (now < _nextSweepTicks) return;
+        _nextSweepTicks = now + _opt.IdleSweepSeconds * 1000L;
+
+        var limit = TimeSpan.FromSeconds(_opt.IdleTimeoutSeconds);
+        DateTime utcNow = DateTime.UtcNow;
+
+        foreach (var s in _sessions.Values.Where(s => utcNow - s.LastActivityUtc > limit).ToList())
+            Close(s, $"zombie: không có tín hiệu trong {_opt.IdleTimeoutSeconds}s");
     }
 
     // accept() các kết nối đang chờ, chặn kết nối vượt ngưỡng
@@ -214,6 +239,7 @@ public class TcpSocketServer(
             if (n == 0) { Close(session, "client đóng kết nối"); return; }
 
             lines.Clear();
+            // Append cũng làm mới LastActivityUtc => mọi byte nhận được (kể cả PING) đều là "còn sống"
             if (!session.Append(buffer.AsSpan(0, n), _opt.MaxLineBytes, lines))
             {
                 Close(session, "gói tin quá lớn");
@@ -223,7 +249,7 @@ public class TcpSocketServer(
             foreach (var line in lines)
             {
                 if (line == Protocol.Ping)
-                    Send(session, Protocol.Pong);        // trả ngay, không cần qua worker
+                    Send(session, Protocol.Pong);        // heartbeat: trả ngay, không cần qua worker
                 else if (!_work.Writer.TryWrite((session, line)))
                 {
                     Close(session, "Server quá tải");        // Client nối lại và gửi bù

@@ -7,14 +7,15 @@ public static class Protocol
 
     // ---- Client -> Server ----
     public const string Auth = "AUTH";          // AUTH|{jwt}
-    public const string Ping = "PING";          // PING
+    public const string Ping = "PING";          // PING  (heartbeat: Client gửi mỗi 5s; Server im lặng > 15s thì Client nối lại,
+                                                //        Client im lặng > IdleTimeoutSeconds thì Server ngắt)
     public const string Sync = "SYNC";          // SYNC  (xin lại toàn bộ bàn + order đang mở)
     public const string Order = "ORDER";        // ORDER|{orderId:N}|{CreateOrderRequest}
     public const string Item = "ITEM";          // ITEM|{requestId:N}|{ItemStatusChangedEvent}
     public const string Table = "TABLE";        // TABLE|{requestId:N}|{TableChangedEvent}
 
     // ---- Server -> Client ----
-    public const string Pong = "PONG";
+    public const string Pong = "PONG";          // PONG  (trả lời PING ngay, không qua worker; Client xử lý nội bộ, không phát lên tầng trên)
     public const string AuthOk = "AUTH_OK";         // AUTH_OK|{role}
     public const string AuthFail = "AUTH_FAIL";     // AUTH_FAIL|{ErrorResponse}
     public const string Ack = "ACK";                // ACK|{id:N}                  đã xử lý
