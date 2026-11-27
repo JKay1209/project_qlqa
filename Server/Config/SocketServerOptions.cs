@@ -28,6 +28,12 @@ public class SocketServerOptions
 
     public int ShutdownTimeoutSeconds { get; set; } = 5;    // thời gian chờ các client đóng khi tắt Server
 
+    // ---- Heartbeat (Task 19) ----
+    // Client gửi PING mỗi 5s. Quá IdleTimeoutSeconds không nhận được byte nào từ client => zombie, ngắt.
+    // Nên đặt >= 3 lần chu kỳ PING của Client để 1-2 gói bị trễ không làm ngắt oan.
+    public int IdleTimeoutSeconds { get; set; } = 15;       // 0 = tắt dọn zombie
+    public int IdleSweepSeconds { get; set; } = 1;          // chu kỳ quét zombie
+
     public void Validate()
     {
         if (Port is < 1 or > 65535)
@@ -44,5 +50,9 @@ public class SocketServerOptions
             throw new InvalidOperationException("Các tham số KeepAlive phải >= 1.");
         if (ShutdownTimeoutSeconds < 0)
             throw new InvalidOperationException("SocketServer:ShutdownTimeoutSeconds phải >= 0.");
+        if (IdleTimeoutSeconds < 0)
+            throw new InvalidOperationException("SocketServer:IdleTimeoutSeconds phải >= 0 (0 = tắt).");
+        if (IdleTimeoutSeconds > 0 && IdleSweepSeconds < 1)
+            throw new InvalidOperationException("SocketServer:IdleSweepSeconds phải >= 1.");
     }
 }
