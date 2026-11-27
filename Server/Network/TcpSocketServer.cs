@@ -2,12 +2,15 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using Server.Config;
 using Server.Network.Routing;
+using Shared.DTOs.Auth;
 using Shared.DTOs.Table;
 using Shared.Protocol;
+using Shared.Serialization;
 
 namespace Server.Network;
 
@@ -25,6 +28,7 @@ public class TcpSocketServer(
 {
     private const int SelectTimeoutMicroseconds = 500_000;   // dự phòng, bình thường được đánh thức ngay
     private const int MaxDeliveriesPerLoop = 256;
+    private const int MaxAcceptsPerLoop = 64;               // bị dồn kết nối vẫn còn lượt đọc/gửi cho client cũ
 
     private readonly SocketServerOptions _opt = options.Value;
     private readonly Dictionary<Socket, ClientSession> _sessions = new();   // chỉ luồng select dùng
@@ -32,6 +36,9 @@ public class TcpSocketServer(
     private readonly Channel<(ClientSession Session, string Line)> _work =
         Channel.CreateBounded<(ClientSession, string)>(new BoundedChannelOptions(1000) { SingleReader = true });
 
+    private ConnectionLimiter _limiter = null!;             // tạo sau khi cấu hình đã được kiểm tra
+    private long _rejected;
+    private long _lastRejectLogTicks;
     private Socket? _wakeSocket;
     private EndPoint? _wakeEndPoint;
 
@@ -41,6 +48,7 @@ public class TcpSocketServer(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _opt.Validate();
+        _limiter = new ConnectionLimiter(_opt.MaxClients, _opt.MaxClientsPerIp);
 
         // 1. socket()
         using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -135,10 +143,10 @@ public class TcpSocketServer(
         }
     }
 
-    // accept() hết các kết nối đang chờ
+    // accept() các kết nối đang chờ, chặn kết nối vượt ngưỡng
     private void AcceptPending(Socket listener)
     {
-        while (true)
+        for (int i = 0; i < MaxAcceptsPerLoop; i++)
         {
             Socket client;
             try
@@ -165,11 +173,35 @@ public class TcpSocketServer(
             }
 
             var session = new ClientSession(registry.NextId(), client, Wake);
+            if (!_limiter.TryAcquire(IpOf(session), out string? reason))
+            {
+                Reject(session, reason!);
+                continue;
+            }
             _sessions[client] = session;
             registry.Add(session);
             logger.LogInformation("Client #{Id} kết nối: {Endpoint} (đang có {Count})",
                 session.Id, session.RemoteEndPoint, registry.Count);
         }
+    }
+
+    private static IPAddress IpOf(ClientSession session) => session.RemoteAddress ?? IPAddress.None;
+
+    // Báo lý do (không chờ) rồi đóng. Kết nối bị từ chối không vào danh sách client.
+    private void Reject(ClientSession session, string reason)
+    {
+        long total = ++_rejected;
+        long now = Environment.TickCount64;
+        if (total == 1 || now - _lastRejectLogTicks >= 1000)   // tối đa 1 dòng log/giây khi bị dồn kết nối
+        {
+            _lastRejectLogTicks = now;
+            logger.LogWarning("Từ chối {Endpoint}: {Reason} (tổng đã từ chối {Total})",
+                session.RemoteEndPoint, reason, total);
+        }
+
+        string line = $"{Protocol.Error}|{JsonSerializer.Serialize(new ErrorResponse(reason), JsonDefaults.Options)}\n";
+        session.Socket.Send(Encoding.UTF8.GetBytes(line), SocketFlags.None, out _);
+        session.Dispose();
     }
 
     // Socket đọc được: đọc 1 lần (không để 1 client chiếm vòng lặp), tách dòng, xử lý
@@ -252,6 +284,7 @@ public class TcpSocketServer(
         if (!_sessions.Remove(session.Socket)) return;
 
         registry.Remove(session.Id);
+        _limiter.Release(IpOf(session));   // chỉ chạy 1 lần nhờ _sessions.Remove ở trên
         session.Dispose();
         logger.LogInformation("Client #{Id} đã ngắt: {Reason} (còn {Count}).", session.Id, reason, registry.Count);
     }
