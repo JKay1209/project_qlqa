@@ -15,4 +15,9 @@ public static class ApiRoutes
     public const string Orders = "/api/orders";
     public const string Payments = "/api/payments";
     public const string Employees = "/api/employees";
+
+    // Giám sát Socket Server
+    public const string SocketServer = "/api/server";
+    public const string SocketServerStatus = SocketServer + "/status";
+    public const string SocketServerClients = SocketServer + "/clients";
 }

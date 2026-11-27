@@ -28,10 +28,12 @@ builder.Services.AddSingleton<EmailService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<TokenBlacklist>();
 
-// Chuẩn bị cho real-time (chưa dùng)
+// Chuẩn bị cho real-time
 builder.Services.AddSignalR();
 
-// Socket server TCP (Task 05)
+// Socket server TCP
+builder.Services.Configure<SocketServerOptions>(builder.Configuration.GetSection(SocketServerOptions.SectionName));
+builder.Services.AddSingleton<ClientRegistry>();
 builder.Services.AddHostedService<TcpSocketServer>();
 
 var app = builder.Build();

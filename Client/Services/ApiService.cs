@@ -14,20 +14,40 @@ namespace Client.Services
         protected readonly HttpClient client =
             HttpClientManager.Client;
 
-        protected async Task<T> PostAsync<T>(
+        protected Task<T> PostAsync<T>(
             string url,
             object data,
             CancellationToken ct = default)
+            => SendAsync<T>(HttpMethod.Post, url, data, ct);
+
+        protected Task<T> GetAsync<T>(
+            string url,
+            CancellationToken ct = default)
+            => SendAsync<T>(HttpMethod.Get, url, null, ct);
+
+        // Server trả MessageResponse khi xóa/ngắt thành công
+        protected Task<MessageResponse> DeleteAsync(
+            string url,
+            CancellationToken ct = default)
+            => SendAsync<MessageResponse>(HttpMethod.Delete, url, null, ct);
+
+        // Gửi request chung: gắn token, đọc lỗi, đổi lỗi mạng thành exception của Client
+        private async Task<T> SendAsync<T>(
+            HttpMethod method,
+            string url,
+            object? data,
+            CancellationToken ct)
         {
             try
             {
-                string json =
-                    JsonSerializer.Serialize(data, JsonDefaults.Options);
+                using var request = new HttpRequestMessage(method, url);
 
-                using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                if (data is not null)
                 {
-                    Content = new StringContent(json, Encoding.UTF8, "application/json")
-                };
+                    string json =
+                        JsonSerializer.Serialize(data, JsonDefaults.Options);
+                    request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                }
 
                 // Gắn token nếu đã đăng nhập
                 string? token = TokenManager.GetToken();
@@ -67,7 +87,8 @@ namespace Client.Services
             catch (JsonException) { }
             return $"Lỗi HTTP {status}";
         }
-        protected async Task PostAsync(string url,object data)
+ 
+        protected async Task PostAsync(string url, object data)
         {
             string json =
                 JsonSerializer.Serialize(data);
