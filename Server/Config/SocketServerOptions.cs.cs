@@ -6,8 +6,12 @@ public class SocketServerOptions
     public const string SectionName = "SocketServer";
 
     public int Port { get; set; } = 9000;
-    public int Backlog { get; set; } = 100;                 // hàng đợi kết nối chờ accept (Task 17 sẽ tinh chỉnh)
-    
+    public int Backlog { get; set; } = 100;                 // hàng đợi kết nối chờ accept: đủ cho mọi máy nối lại cùng lúc
+
+    // ---- Giới hạn kết nối ----
+    public int MaxClients { get; set; } = 100;              // tối đa client toàn Server
+    public int MaxClientsPerIp { get; set; } = 10;          // tối đa kết nối trên mỗi IP
+
     public int ReceiveBufferBytes { get; set; } = 4096;     // buffer đọc mỗi lần của vòng select
     public int MaxLineBytes { get; set; } = 262_144;        // 1 dòng lệnh dài hơn -> ngắt client
     public int MaxPendingSendBytes { get; set; } = 4_194_304;   // client nhận quá chậm -> ngắt
@@ -30,6 +34,10 @@ public class SocketServerOptions
             throw new InvalidOperationException("SocketServer:Port phải trong khoảng 1–65535.");
         if (Backlog < 1)
             throw new InvalidOperationException("SocketServer:Backlog phải >= 1.");
+        if (MaxClients < 1 || MaxClientsPerIp < 1 || MaxClientsPerIp > MaxClients)
+            throw new InvalidOperationException("SocketServer: cần 1 <= MaxClientsPerIp <= MaxClients.");
+        if (ReceiveBufferBytes is < 256 or > 1_048_576)
+            throw new InvalidOperationException("SocketServer:ReceiveBufferBytes phải trong khoảng 256–1048576.");
         if (MaxLineBytes < 1024 || MaxPendingSendBytes < MaxLineBytes)
             throw new InvalidOperationException("SocketServer: cần 1024 <= MaxLineBytes <= MaxPendingSendBytes.");
         if (KeepAlive && (KeepAliveTimeSeconds < 1 || KeepAliveIntervalSeconds < 1 || KeepAliveRetryCount < 1))

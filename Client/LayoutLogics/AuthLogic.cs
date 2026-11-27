@@ -20,6 +20,7 @@ public class AuthLogic
             var result = await _auth.LoginAsync(username, password, ct);
             TokenManager.SetToken(result.AccessToken);
             SessionManager.Start(result);
+            SocketManager.Realtime.SignIn(result.AccessToken);   // xác thực kết nối TCP để nhận order/bàn
             return (true, null);
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
@@ -144,6 +145,7 @@ public class AuthLogic
         }
         finally
         {
+            SocketManager.Realtime.SignOut();
             TokenManager.Clear();
             SessionManager.End();
         }

@@ -151,6 +151,7 @@ internal sealed class SocketClient : IAsyncDisposable
             first = false;
 
             Socket? socket = null;
+            long connectedAt = 0;
             try
             {
                 // Server bind IPAddress.Any (IPv4) nên Client cũng dùng IPv4
@@ -164,7 +165,7 @@ internal sealed class SocketClient : IAsyncDisposable
                 }
 
                 Volatile.Write(ref _socket, socket);
-                attempt = 0;
+                connectedAt = Stopwatch.GetTimestamp();
                 LastError = null;
                 SetState(ConnectionState.Connected);
 
@@ -186,6 +187,11 @@ internal sealed class SocketClient : IAsyncDisposable
             {
                 Volatile.Write(ref _socket, null);
                 socket?.Dispose();
+
+                // Chỉ đặt lại backoff khi kết nối đã sống đủ lâu. Bị Server từ chối (đủ chỗ) thì
+                // đóng ngay, nên thời gian chờ tăng dần thay vì nối lại liên tục mỗi giây.
+                if (connectedAt != 0 && Stopwatch.GetElapsedTime(connectedAt) >= TimeSpan.FromSeconds(10))
+                    attempt = 0;
             }
 
             if (ct.IsCancellationRequested) break;
