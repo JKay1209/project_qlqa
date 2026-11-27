@@ -2,20 +2,41 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Channels;
 using Microsoft.Extensions.Options;
 using Server.Config;
+using Server.Network.Routing;
+using Shared.DTOs.Table;
+using Shared.Protocol;
 
 namespace Server.Network;
 
-// TCP Socket Server: Socket -> (Socket Options) -> Bind -> Listen -> Accept.
-// Mỗi client được xử lý bằng một Task riêng (async), lỗi của client này không ảnh hưởng client khác.
+// TCP Socket Server theo mô hình I/O Multiplexing: Socket -> (Socket Options) -> Bind -> Listen -> select().
+//
+//  - MỘT luồng gọi Socket.Select() để chờ cùng lúc: listener, mọi client, và socket "đánh thức".
+//    Chỉ luồng này đụng vào socket và danh sách client.
+//  - Việc chậm (kiểm tra JWT, CSDL) được đẩy sang một worker qua hàng đợi, vòng select không bị chặn.
+//  - Worker trả kết quả về hàng đợi _outgoing rồi đánh thức vòng select để gửi đi.
 public class TcpSocketServer(
     ILogger<TcpSocketServer> logger,
     IOptions<SocketServerOptions> options,
-    ClientRegistry registry) : BackgroundService
+    ClientRegistry registry,
+    MessageRouter router) : BackgroundService
 {
+    private const int SelectTimeoutMicroseconds = 500_000;   // dự phòng, bình thường được đánh thức ngay
+    private const int MaxDeliveriesPerLoop = 256;
+
     private readonly SocketServerOptions _opt = options.Value;
-    private readonly ConcurrentDictionary<int, Task> _handlers = new();   // để chờ dọn dẹp khi tắt Server
+    private readonly Dictionary<Socket, ClientSession> _sessions = new();   // chỉ luồng select dùng
+    private readonly ConcurrentQueue<Outbound> _outgoing = new();
+    private readonly Channel<(ClientSession Session, string Line)> _work =
+        Channel.CreateBounded<(ClientSession, string)>(new BoundedChannelOptions(1000) { SingleReader = true });
+
+    private Socket? _wakeSocket;
+    private EndPoint? _wakeEndPoint;
+
+    // Cho các phần khác của Server (VD thanh toán - Task 22) báo đổi trạng thái bàn. Gọi từ mọi luồng.
+    public void PublishTableStatus(TableChangedEvent e) => Post(MessageRouter.TableStatusMessage(e));
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -38,115 +59,248 @@ public class TcpSocketServer(
             logger.LogCritical(ex, "Không mở được cổng {Port}. Cổng đang bị chương trình khác dùng?", _opt.Port);
             throw;
         }
+        listener.Blocking = false;
+
+        // Socket UDP loopback tự gửi cho chính nó để đánh thức select() (self-pipe trick)
+        using var wake = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        wake.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        wake.Blocking = false;
+        _wakeEndPoint = wake.LocalEndPoint;
+        _wakeSocket = wake;
 
         registry.MarkListening(_opt.Port);
-        logger.LogInformation("Socket server đang lắng nghe ở cổng {Port} (backlog {Backlog})", _opt.Port, _opt.Backlog);
+        logger.LogInformation("Socket server (select) đang lắng nghe ở cổng {Port} (backlog {Backlog})",
+            _opt.Port, _opt.Backlog);
+
+        Task worker = Task.Run(() => WorkerAsync(stoppingToken), CancellationToken.None);
+        using var stopRegistration = stoppingToken.Register(Wake);
 
         try
         {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                // 4. accept(): chờ client, không chặn luồng nào
-                Socket client;
-                try
-                {
-                    client = await listener.AcceptAsync(stoppingToken);
-                }
-                catch (SocketException ex)
-                {
-                    // Lỗi thoáng qua (client reset giữa chừng...): ghi log rồi tiếp tục nhận client khác
-                    logger.LogWarning("Lỗi khi accept: {Message}", ex.Message);
-                    await Task.Delay(100, stoppingToken);
-                    continue;
-                }
-
-                // Mỗi client một Task. HandleClientAsync không bao giờ ném lỗi ra ngoài.
-                int id = registry.NextId();
-                Task handler = Task.Run(() => HandleClientAsync(id, client, stoppingToken), CancellationToken.None);
-                _handlers[id] = handler;
-                _ = handler.ContinueWith(_ => _handlers.TryRemove(id, out _), TaskScheduler.Default);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Server đang tắt, thoát vòng lặp bình thường
+            // select() là lời gọi chặn nên chạy trên một luồng riêng
+            await Task.Factory.StartNew(() => SelectLoop(listener, wake, stoppingToken),
+                CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
         finally
         {
             registry.MarkStopped();
-            await DrainAsync();
+            foreach (var session in _sessions.Values.ToList()) Close(session, "Server đang tắt");
+
+            _work.Writer.TryComplete();
+            await Task.WhenAny(worker, Task.Delay(TimeSpan.FromSeconds(_opt.ShutdownTimeoutSeconds)));
+            _wakeSocket = null;
         }
     }
 
-    // Vòng đời một client: cấu hình socket -> đăng ký -> nhận/gửi -> dọn dẹp.
-    private async Task HandleClientAsync(int id, Socket socket, CancellationToken serverToken)
-    {
-        var session = new ClientSession(id, socket, serverToken);
-
-        try
-        {
-            SocketTuner.ConfigureClient(socket, _opt, logger);
-            registry.Add(session);
-            logger.LogInformation("Client #{Id} kết nối: {Endpoint} (đang có {Count})",
-                session.Id, session.RemoteEndPoint, registry.Count);
-
-            await ReceiveLoopAsync(session);
-        }
-        catch (OperationCanceledException)
-        {
-            logger.LogInformation("Client #{Id} bị đóng ({Reason}).",
-                session.Id, serverToken.IsCancellationRequested ? "Server đang tắt" : "bị ngắt chủ động");
-        }
-        catch (Exception ex) when (ex is SocketException or ObjectDisposedException)
-        {
-            logger.LogWarning("Client #{Id} lỗi socket: {Message}", session.Id, ex.Message);
-        }
-        catch (Exception ex)
-        {
-            // Cô lập lỗi: 1 client lỗi không được làm sập Server (Task 27 sẽ bổ sung thêm)
-            logger.LogError(ex, "Lỗi không xử lý với client #{Id}", session.Id);
-        }
-        finally
-        {
-            registry.Remove(session.Id);
-            session.Dispose();
-            logger.LogInformation("Client #{Id} đã ngắt kết nối (còn {Count}).", session.Id, registry.Count);
-        }
-    }
-
-    // Nhận chữ từ client rồi trả lời: "PING" -> "PONG", còn lại -> "ECHO: <nội dung>".
-    // TẠM THỜI: sẽ thay bằng packet Header/Body + kiểm tra gói tin (Task 11, 13, 18).
-    private async Task ReceiveLoopAsync(ClientSession session)
+    // ============================ Vòng select ============================
+    private void SelectLoop(Socket listener, Socket wake, CancellationToken ct)
     {
         var buffer = new byte[_opt.ReceiveBufferBytes];
-        var ct = session.Token;
+        var lines = new List<string>();
 
         while (!ct.IsCancellationRequested)
         {
-            int received = await session.Socket.ReceiveAsync(buffer.AsMemory(), SocketFlags.None, ct);
-            if (received == 0) break;   // client đã đóng kết nối
+            DeliverOutgoing();
 
-            session.OnReceived(received);
+            foreach (var s in _sessions.Values.Where(s => s.IsDisconnectRequested).ToList())
+                Close(s, "bị ngắt chủ động");
 
-            string message = Encoding.UTF8.GetString(buffer, 0, received).Trim();
-            string reply = message.Equals("PING", StringComparison.OrdinalIgnoreCase)
-                ? "PONG"
-                : $"ECHO: {message}";
+            var read = new List<Socket>(_sessions.Count + 2) { listener, wake };
+            read.AddRange(_sessions.Keys);
+            var write = _sessions.Values.Where(s => s.HasPendingSend).Select(s => s.Socket).ToList();
 
-            await session.SendAsync(Encoding.UTF8.GetBytes(reply + "\n"), ct);
+            try
+            {
+                // 4. select(): chặn tới khi có ít nhất 1 socket sẵn sàng
+                Socket.Select(read, write.Count > 0 ? write : null, null,
+                    _outgoing.IsEmpty ? SelectTimeoutMicroseconds : 0);   // còn việc gửi thì không ngủ
+            }
+            catch (SocketException ex)
+            {
+                logger.LogWarning("Lỗi select: {Message}", ex.Message);
+                Thread.Sleep(100);
+                continue;
+            }
+
+            foreach (var socket in read)
+            {
+                if (socket == listener) AcceptPending(listener);
+                else if (socket == wake) DrainWake(wake, buffer);
+                else if (_sessions.TryGetValue(socket, out var session)) Receive(session, buffer, lines);
+            }
+
+            foreach (var socket in write)
+                if (_sessions.TryGetValue(socket, out var session))
+                    Guard(session, session.Flush);
         }
     }
 
-    // Khi tắt Server: ngắt mọi client rồi chờ các Task kết thúc (có giới hạn thời gian).
-    private async Task DrainAsync()
+    // accept() hết các kết nối đang chờ
+    private void AcceptPending(Socket listener)
     {
-        registry.DisconnectAll();
+        while (true)
+        {
+            Socket client;
+            try
+            {
+                client = listener.Accept();
+            }
+            catch (SocketException ex)
+            {
+                if (ex.SocketErrorCode != SocketError.WouldBlock)
+                    logger.LogWarning("Lỗi khi accept: {Message}", ex.Message);
+                return;
+            }
 
-        Task all = Task.WhenAll(_handlers.Values);
-        Task finished = await Task.WhenAny(all, Task.Delay(TimeSpan.FromSeconds(_opt.ShutdownTimeoutSeconds)));
+            try
+            {
+                client.Blocking = false;
+                SocketTuner.ConfigureClient(client, _opt, logger);
+            }
+            catch (SocketException ex)
+            {
+                logger.LogWarning("Không cấu hình được socket client: {Message}", ex.Message);
+                client.Dispose();
+                continue;
+            }
 
-        if (finished != all)
-            logger.LogWarning("Hết {Seconds}s nhưng còn {Count} client chưa đóng xong.",
-                _opt.ShutdownTimeoutSeconds, _handlers.Count);
+            var session = new ClientSession(registry.NextId(), client, Wake);
+            _sessions[client] = session;
+            registry.Add(session);
+            logger.LogInformation("Client #{Id} kết nối: {Endpoint} (đang có {Count})",
+                session.Id, session.RemoteEndPoint, registry.Count);
+        }
+    }
+
+    // Socket đọc được: đọc 1 lần (không để 1 client chiếm vòng lặp), tách dòng, xử lý
+    private void Receive(ClientSession session, byte[] buffer, List<string> lines)
+        => Guard(session, () =>
+        {
+            int n = session.Socket.Receive(buffer.AsSpan(), SocketFlags.None, out SocketError error);
+            if (error == SocketError.WouldBlock) return;
+            if (error != SocketError.Success) throw new SocketException((int)error);
+            if (n == 0) { Close(session, "client đóng kết nối"); return; }
+
+            lines.Clear();
+            if (!session.Append(buffer.AsSpan(0, n), _opt.MaxLineBytes, lines))
+            {
+                Close(session, "gói tin quá lớn");
+                return;
+            }
+
+            foreach (var line in lines)
+            {
+                if (line == Protocol.Ping)
+                    Send(session, Protocol.Pong);        // trả ngay, không cần qua worker
+                else if (!_work.Writer.TryWrite((session, line)))
+                {
+                    Close(session, "Server quá tải");        // Client nối lại và gửi bù
+                    return;
+                }
+            }
+        });
+
+    // ============================ Gửi ============================
+    private void DeliverOutgoing()
+    {
+        // Giới hạn mỗi vòng để một đợt broadcast lớn không làm chậm việc đọc / accept
+        for (int i = 0; i < MaxDeliveriesPerLoop && _outgoing.TryDequeue(out var message); i++)
+        {
+            foreach (var session in _sessions.Values.ToList())
+            {
+                bool match = message.TargetId is int target
+                    ? session.Id == target
+                    : session.User is { } user && message.Audience!(user.Role) && user.ExpiresAtUtc > DateTime.UtcNow;
+
+                if (match) Send(session, message.Line);
+            }
+        }
+    }
+
+    private void Send(ClientSession session, string line)
+        => Guard(session, () =>
+        {
+            if (!session.Enqueue(Encoding.UTF8.GetBytes(line + "\n"), _opt.MaxPendingSendBytes))
+            {
+                Close(session, "client nhận quá chậm");
+                return;
+            }
+            session.Flush();   // thường gửi hết ngay; còn dư thì select báo sau
+        });
+
+    // Cô lập lỗi: 1 client lỗi không được làm sập vòng select
+    private void Guard(ClientSession session, Action action)
+    {
+        if (!_sessions.ContainsKey(session.Socket)) return;
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex is SocketException or ObjectDisposedException)
+        {
+            Close(session, "lỗi socket: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Lỗi không xử lý với client #{Id}", session.Id);
+            Close(session, "lỗi xử lý");
+        }
+    }
+
+    private void Close(ClientSession session, string reason)
+    {
+        if (!_sessions.Remove(session.Socket)) return;
+
+        registry.Remove(session.Id);
+        session.Dispose();
+        logger.LogInformation("Client #{Id} đã ngắt: {Reason} (còn {Count}).", session.Id, reason, registry.Count);
+    }
+
+    // ============================ Worker ============================
+    private async Task WorkerAsync(CancellationToken ct)
+    {
+        try
+        {
+            await foreach (var (session, line) in _work.Reader.ReadAllAsync(ct))
+            {
+                try
+                {
+                    // Vẫn xử lý kể cả khi client vừa rớt: order đã tới Server thì phải được ghi
+                    await router.RouteAsync(session, line, Post, ct);
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    logger.LogError(ex, "Lỗi định tuyến từ client #{Id}", session.Id);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Server đang tắt
+        }
+    }
+
+    private void Post(Outbound message)
+    {
+        _outgoing.Enqueue(message);
+        Wake();
+    }
+
+    private void Wake()
+    {
+        try
+        {
+            if (_wakeSocket is { } s && _wakeEndPoint is { } ep) s.SendTo([1], ep);
+        }
+        catch (Exception ex) when (ex is SocketException or ObjectDisposedException)
+        {
+            // đang tắt, hoặc bộ đệm đầy (khi đó select đã được đánh thức rồi)
+        }
+    }
+
+    private static void DrainWake(Socket wake, byte[] buffer)
+    {
+        while (wake.Available > 0)
+            wake.Receive(buffer.AsSpan(), SocketFlags.None, out _);
     }
 }

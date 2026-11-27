@@ -7,7 +7,12 @@ public class SocketServerOptions
 
     public int Port { get; set; } = 9000;
     public int Backlog { get; set; } = 100;                 // hàng đợi kết nối chờ accept (Task 17 sẽ tinh chỉnh)
-    public int ReceiveBufferBytes { get; set; } = 4096;     // buffer nhận cho mỗi client
+    
+    public int ReceiveBufferBytes { get; set; } = 4096;     // buffer đọc mỗi lần của vòng select
+    public int MaxLineBytes { get; set; } = 262_144;        // 1 dòng lệnh dài hơn -> ngắt client
+    public int MaxPendingSendBytes { get; set; } = 4_194_304;   // client nhận quá chậm -> ngắt
+    public string ProcessedOrderLogPath { get; set; } = "App_Data/processed-orders.log";   // chống trùng order
+
 
     // ---- Socket Options ----
     public bool ReuseAddress { get; set; } = true;          // SO_REUSEADDR
@@ -25,8 +30,8 @@ public class SocketServerOptions
             throw new InvalidOperationException("SocketServer:Port phải trong khoảng 1–65535.");
         if (Backlog < 1)
             throw new InvalidOperationException("SocketServer:Backlog phải >= 1.");
-        if (ReceiveBufferBytes is < 256 or > 1_048_576)
-            throw new InvalidOperationException("SocketServer:ReceiveBufferBytes phải trong khoảng 256–1048576.");
+        if (MaxLineBytes < 1024 || MaxPendingSendBytes < MaxLineBytes)
+            throw new InvalidOperationException("SocketServer: cần 1024 <= MaxLineBytes <= MaxPendingSendBytes.");
         if (KeepAlive && (KeepAliveTimeSeconds < 1 || KeepAliveIntervalSeconds < 1 || KeepAliveRetryCount < 1))
             throw new InvalidOperationException("Các tham số KeepAlive phải >= 1.");
         if (ShutdownTimeoutSeconds < 0)
